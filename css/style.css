@@ -1,0 +1,1113 @@
+/* ==========================================================================
+   Gantt — planificateur local
+   Feuille de style unique. Thème clair par défaut, thème sombre via
+   <html data-theme="sombre">.
+
+   Principe visuel : l'interface est neutre (graphite + gris), la couleur
+   vient uniquement des données (groupes, barres, jalons). Rien d'autre.
+   ========================================================================== */
+
+/* --------------------------------------------------------------- tokens -- */
+:root {
+  --bg:          #f4f5f7;
+  --surface:     #ffffff;
+  --surface-2:   #fafbfc;
+  --surface-3:   #f0f2f5;
+  --ink:         #14161a;
+  --ink-2:       #3c434d;
+  --muted:       #78808d;
+  --faint:       #a3aab6;
+  --line:        #e4e7ec;
+  --line-2:      #eef0f4;
+  --accent:      #2f6fed;
+  --accent-ink:  #1d4ed8;
+  --accent-soft: #eaf1fe;
+  --danger:      #dc3b40;
+  --danger-soft: #fdeced;
+  --ok:          #17864f;
+
+  --grid:        #eceef2;
+  --grid-strong: #d9dde4;
+  --weekend:     #f7f8fa;
+  --today:       #e5484d;
+  --link:        #a8b0bc;
+  --link-on:     #2f6fed;
+
+  --radius:    10px;
+  --radius-sm: 7px;
+  --radius-lg: 14px;
+
+  --sh-1: 0 1px 2px rgba(16, 24, 40, .05), 0 1px 3px rgba(16, 24, 40, .04);
+  --sh-2: 0 10px 28px -8px rgba(16, 24, 40, .18), 0 2px 8px rgba(16, 24, 40, .06);
+  --sh-pop: 0 16px 40px -12px rgba(16, 24, 40, .28);
+
+  --row-h:  34px;
+  --head-h: 52px;
+  --left-w: 320px;
+  --name-w: 130px;
+
+  --font: "Inter", "Open Sans", "Noto Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", "DejaVu Sans Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --speed: 140ms;
+}
+
+html[data-theme="sombre"] {
+  --bg:          #101215;
+  --surface:     #171a1f;
+  --surface-2:   #1b1f25;
+  --surface-3:   #22262e;
+  --ink:         #e9ecf1;
+  --ink-2:       #c3c9d2;
+  --muted:       #8b93a1;
+  --faint:       #6b7482;
+  --line:        #2a2f38;
+  --line-2:      #23272f;
+  --accent:      #5b8dff;
+  --accent-soft: #1c2740;
+  --danger:      #ff6b6b;
+  --danger-soft: #37201f;
+  --ok:          #3ddc97;
+
+  --grid:        #23272f;
+  --grid-strong: #2f3540;
+  --weekend:     #1a1e24;
+  --today:       #ff6b6b;
+  --link:        #5a6472;
+  --link-on:     #5b8dff;
+
+  --sh-1: 0 1px 2px rgba(0, 0, 0, .4);
+  --sh-2: 0 10px 28px -8px rgba(0, 0, 0, .65), 0 2px 8px rgba(0, 0, 0, .35);
+  --sh-pop: 0 16px 40px -12px rgba(0, 0, 0, .7);
+}
+
+/* ---------------------------------------------------------------- base -- */
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow: hidden;
+}
+
+button, input, select, textarea { font: inherit; color: inherit; }
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-radius: 4px;
+}
+
+kbd {
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 1px 4px;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--muted);
+  margin-left: 3px;
+}
+
+svg { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---------------------------------------------------------------- layout -- */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* --------------------------------------------------------------- topbar -- */
+.topbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  padding: 8px 12px;
+  min-height: 52px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  z-index: 40;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 650;
+  letter-spacing: -.01em;
+  color: var(--ink);
+  padding-right: 10px;
+  border-right: 1px solid var(--line);
+  height: 24px;
+  flex: 0 0 auto;
+}
+.brand svg { width: 18px; height: 18px; stroke-width: 2; }
+.brand span { font-size: 14px; }
+
+.title-input {
+  flex: 0 1 260px;
+  min-width: 130px;
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: -.01em;
+}
+.title-input:hover { background: var(--surface-3); }
+.title-input:focus { background: var(--surface); border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+
+.spacer { flex: 1 1 auto; min-width: 6px; }
+
+.toolgroup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  padding-left: 10px;
+  border-left: 1px solid var(--line);
+  height: 26px;
+}
+.toolgroup:first-of-type { border-left: 0; }
+
+/* -------------------------------------------------------------- boutons -- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-weight: 550;
+  font-size: 12.5px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--speed), border-color var(--speed), color var(--speed);
+}
+.btn svg { width: 14px; height: 14px; stroke-width: 2; }
+.btn:hover { background: var(--surface-3); color: var(--ink); }
+.btn:active { transform: translateY(.5px); }
+
+.btn-primary {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--surface);
+}
+.btn-primary:hover { background: var(--ink-2); border-color: var(--ink-2); color: #fff; }
+
+.btn-ghost { border-color: transparent; background: transparent; }
+.btn-ghost:hover { background: var(--surface-3); }
+
+.btn-danger { color: var(--danger); border-color: var(--line); }
+.btn-danger:hover { background: var(--danger-soft); border-color: var(--danger); color: var(--danger); }
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background var(--speed), color var(--speed);
+}
+.icon-btn svg { width: 16px; height: 16px; }
+.icon-btn:hover { background: var(--surface-3); color: var(--ink); }
+.icon-btn[disabled] { opacity: .35; cursor: default; }
+.icon-btn[disabled]:hover { background: transparent; }
+
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--surface);
+}
+.segmented button {
+  border: 0;
+  background: transparent;
+  padding: 0 9px;
+  height: 28px;
+  font-size: 12px;
+  font-weight: 550;
+  color: var(--muted);
+  cursor: pointer;
+  border-right: 1px solid var(--line);
+}
+.segmented button:last-child { border-right: 0; }
+.segmented button:hover { background: var(--surface-3); color: var(--ink); }
+.segmented button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+
+/* --------------------------------------------------------------- menu -- */
+.menu-wrap { position: relative; }
+
+.menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 236px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--sh-pop);
+  padding: 5px;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+}
+.menu[hidden] { display: none; }
+.menu button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  padding: 7px 9px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--ink-2);
+  font-size: 12.5px;
+}
+.menu button:hover { background: var(--surface-3); color: var(--ink); }
+.menu-hint { color: var(--faint); font-size: 11px; }
+.menu-sep { height: 1px; background: var(--line); margin: 5px 4px; }
+.menu-label {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--faint);
+  padding: 6px 9px 3px;
+  font-weight: 650;
+}
+
+/* ------------------------------------------------- menu du clic droit ---- */
+/* Position fixe et ancrage neutralisé : sans ça, le « right: 0 » du menu de la
+   barre d'outils étirerait la boîte d'un bord à l'autre. */
+.menu-contexte {
+  position: fixed;
+  right: auto;
+  top: auto;
+  min-width: 216px;
+}
+.menu button > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.menu button.danger { color: var(--danger); }
+.menu button.danger:hover { background: var(--danger-soft); color: var(--danger); }
+.menu button[disabled] { opacity: .4; cursor: default; }
+.menu button[disabled]:hover { background: transparent; color: var(--ink-2); }
+
+.menu-couleurs { padding: 2px 0 3px; }
+.menu-couleurs .swatches { padding: 1px 9px 2px; }
+.menu .swatch {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 6px;
+  border: 2px solid transparent;
+  justify-content: center;
+}
+.menu .swatch[aria-pressed="true"] { border-color: var(--ink); }
+
+/* ------------------------------------------------------------ workspace -- */
+.workspace {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+  position: relative;
+}
+
+.chart-scroller {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: auto;
+  position: relative;
+  background: var(--surface);
+  scrollbar-color: var(--faint) transparent;
+}
+.chart-scroller::-webkit-scrollbar { width: 11px; height: 11px; }
+.chart-scroller::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border: 3px solid var(--surface);
+  border-radius: 99px;
+}
+.chart-scroller::-webkit-scrollbar-thumb:hover { background: var(--faint); }
+.chart-scroller::-webkit-scrollbar-corner { background: transparent; }
+
+.canvas { position: relative; }
+
+.chart-scroller.is-busy,
+.chart-scroller.is-busy * {
+  cursor: grabbing !important;
+  user-select: none;
+}
+
+/* ---------------------------------------------------------------- entête -- */
+.head {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  height: var(--head-h);
+  background: var(--surface);
+  border-bottom: 1px solid var(--grid-strong);
+  box-shadow: 0 1px 0 rgba(16, 24, 40, .02);
+}
+
+.head-left {
+  position: sticky;
+  left: 0;
+  z-index: 30;
+  flex: 0 0 auto;
+  width: var(--left-w);
+  display: grid;
+  grid-template-columns: 1fr 56px 56px 40px;
+  align-items: end;
+  background: var(--surface);
+  border-right: 1px solid var(--grid-strong);
+  padding-bottom: 7px;
+}
+.head-left .col {
+  font-size: 10.5px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--faint);
+  padding: 0 8px;
+}
+.head-left .col-d, .head-left .col-p { text-align: right; }
+.head-left .col-p { padding-right: 10px; }
+
+.head-track { position: relative; flex: 0 0 auto; height: 100%; overflow: hidden; }
+
+.axis-month {
+  position: absolute;
+  top: 0;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  padding-left: 9px;
+  font-size: 11.5px;
+  font-weight: 650;
+  letter-spacing: .01em;
+  color: var(--ink-2);
+  border-left: 1px solid var(--grid-strong);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.axis-month.mid { font-weight: 500; color: var(--muted); }
+
+.head-track .axis-tick {
+  position: absolute;
+  bottom: 0;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: 7px;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--faint);
+  border-left: 1px solid var(--grid);
+  overflow: hidden;
+  white-space: nowrap;
+}
+.head-track .axis-tick.ctr { justify-content: center; padding-left: 0; }
+.head-track .axis-tick.strong { border-left-color: var(--grid-strong); color: var(--muted); }
+.head-track .axis-tick.weekend { background: var(--weekend); }
+
+.head-track .today-flag {
+  position: absolute;
+  top: 30px;
+  transform: translateX(-50%);
+  background: var(--today);
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 650;
+  letter-spacing: .02em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 2;
+}
+.head-track .today-flag::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  width: 0; height: 0;
+  transform: translateX(-50%);
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 4px solid var(--today);
+}
+
+/* ----------------------------------------------------------------- lignes -- */
+.body { position: relative; }
+
+.row { display: flex; height: var(--row-h); position: relative; }
+
+.row-left {
+  position: sticky;
+  left: 0;
+  z-index: 10;
+  flex: 0 0 auto;
+  width: var(--left-w);
+  display: grid;
+  grid-template-columns: 1fr 56px 56px 40px;
+  align-items: center;
+  background: var(--surface);
+  border-right: 1px solid var(--grid-strong);
+  border-bottom: 1px solid var(--line-2);
+  cursor: grab;
+  user-select: none;
+}
+.row-left:active { cursor: grabbing; }
+.row:hover > .row-left { background: var(--surface-2); }
+.row.is-sel > .row-left { background: var(--accent-soft); }
+.row.is-sel > .row-left .tname { color: var(--ink); font-weight: 600; }
+
+.row-left .cell {
+  font-size: 12px;
+  color: var(--muted);
+  padding: 0 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.row-left .cell.d { text-align: right; font-family: var(--mono); font-size: 10.5px; }
+.row-left .cell.p { text-align: right; padding: 0 8px 0 2px; font-family: var(--mono); font-size: 10.5px; }
+
+.row-left .cell.name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--ink-2);
+  padding-left: 9px;
+}
+.row-left .tname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* champ de renommage sur place (double-clic sur le nom, ou F2) */
+.row-left .tname-edit {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  height: 21px;
+  padding: 0 5px;
+  border: 1px solid var(--accent);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.dot { flex: 0 0 auto; width: 7px; height: 7px; border-radius: 99px; }
+
+.row.section > .row-left {
+  background: var(--surface-2);
+  font-weight: 650;
+}
+.row.section:hover > .row-left { background: var(--surface-3); }
+.row.section .cell.name { color: var(--ink); font-size: 12px; letter-spacing: .01em; }
+.row.section .cell.d, .row.section .cell.p { color: transparent; }
+
+.row.section .sec-badge {
+  flex: 0 0 auto;
+  width: 3px;
+  height: 15px;
+  border-radius: 3px;
+}
+
+/* --- réordonner une ligne en la glissant vers le haut / le bas ------------ */
+.row.is-moving > .row-left {
+  background: var(--surface-3);
+  opacity: .75;
+}
+.chart-scroller.reordonne,
+.chart-scroller.reordonne * {
+  cursor: row-resize !important;
+  user-select: none;
+}
+.body .ligne-insertion {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+  z-index: 15;
+  pointer-events: none;
+}
+
+/* ---------------------------------------------------------------- piste -- */
+.track {
+  position: relative;
+  flex: 0 0 auto;
+  height: 100%;
+  border-bottom: 1px solid var(--line-2);
+}
+
+/* Les fonds de groupe, la grille, les week-ends, la ligne « aujourd'hui » et
+   les flèches sont dessinés dans l'unique SVG superposé (voir view.js). */
+
+/* ---------------------------------------------------------------- barres -- */
+.switch {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  cursor: pointer;
+  user-select: none;
+}
+.switch input { width: 15px; height: 15px; accent-color: var(--accent); }
+
+.twist {
+  flex: 0 0 auto;
+  width: 16px; height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--faint);
+  font-size: 9px;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.twist:hover { background: var(--surface-3); color: var(--ink); }
+
+.axis-tick.tight { font-size: 8.5px; }
+
+/* ---------------------------------------------------------------- barres -- */
+.bar {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 19px;
+  min-width: 8px;
+  border-radius: 6px;
+  background: var(--bar-color, var(--accent));
+  cursor: grab;
+  z-index: 2;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, .10);
+  transition: box-shadow var(--speed), filter var(--speed);
+}
+.bar:hover { filter: saturate(1.12) brightness(1.03); box-shadow: 0 2px 8px rgba(16, 24, 40, .18); }
+.bar:active { cursor: grabbing; }
+
+.bar .prog {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 6px 0 0 6px;
+  background: rgba(0, 0, 0, .22);
+  pointer-events: none;
+}
+.bar .blabel {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, .16);
+  max-width: calc(100% - 14px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bar .blabel.out {
+  left: calc(100% + 8px);
+  color: var(--ink-2);
+  font-weight: 550;
+  text-shadow: none;
+  max-width: none;
+}
+
+/* le libellé écrit à côté d'une petite barre, ou d'un jalon, répond au clic */
+.bar .blabel.out,
+.milestone-label { pointer-events: auto; cursor: text; }
+
+/* champ de renommage posé par-dessus le libellé, dans le graphique */
+.label-edit {
+  position: fixed;
+  z-index: 300;
+  padding: 0 7px;
+  border: 1px solid var(--accent);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-soft), 0 6px 16px rgba(16, 24, 40, .18);
+}
+
+/* ---------------------------------------------------------- dates -------- */
+.field .champ-date { display: flex; gap: 4px; }
+.field .champ-date input { flex: 1 1 auto; min-width: 0; }
+.field .champ-date input.invalide {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+}
+.btn-cal {
+  flex: 0 0 auto;
+  width: 29px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--muted);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.btn-cal svg { width: 14px; height: 14px; }
+.btn-cal:hover:not([disabled]) { background: var(--surface-3); color: var(--ink); }
+.btn-cal[disabled] { opacity: .4; cursor: default; }
+
+/* ------------------------------------------------------ calendrier ------- */
+.calendrier {
+  position: fixed;
+  z-index: 320;
+  width: 238px;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--sh-pop);
+  user-select: none;
+}
+.cal-tete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.cal-tete span { font-size: 12.5px; font-weight: 650; }
+.cal-tete button {
+  width: 24px; height: 24px;
+  border: 0; border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 15px; line-height: 1;
+  cursor: pointer;
+}
+.cal-tete button:hover { background: var(--surface-3); color: var(--ink); }
+.cal-jours,
+.cal-grille { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.cal-jours { margin-bottom: 3px; }
+.cal-jours span {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 650;
+  color: var(--faint);
+}
+.cal-grille .vide { height: 26px; }
+.cal-jour {
+  height: 26px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-2);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  cursor: pointer;
+}
+.cal-jour:hover { background: var(--surface-3); color: var(--ink); }
+.cal-jour.aujourdhui { box-shadow: inset 0 0 0 1px var(--accent); color: var(--accent); font-weight: 700; }
+.cal-jour.choisi { background: var(--accent); color: #fff; font-weight: 700; }
+.cal-pied {
+  display: flex;
+  justify-content: center;
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid var(--line-2);
+}
+.cal-pied button {
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--accent);
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 9px;
+  cursor: pointer;
+}
+.cal-pied button:hover { background: var(--accent-soft); }
+
+.bar.is-sel {
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--accent), 0 4px 12px rgba(47, 111, 237, .28);
+}
+.bar.is-dragging { cursor: grabbing; box-shadow: 0 8px 20px rgba(16, 24, 40, .26); z-index: 6; }
+.bar.is-target { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--link-on); }
+
+/* --- poignées de redimensionnement : les bords de la barre ---------------- */
+.bar .grip {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 10px;
+  cursor: ew-resize;
+  opacity: 0;
+  z-index: 3;
+}
+.bar:hover .grip { opacity: 1; }
+.bar .grip.g-l { left: -3px; border-radius: 6px 0 0 6px; }
+.bar .grip.g-r { right: -3px; border-radius: 0 6px 6px 0; }
+.bar .grip::after {
+  content: "";
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 3px; height: 12px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, .9);
+}
+
+/* Barre étroite : poignées réduites, sinon elles se chevaucheraient et la
+   barre ne serait plus déplaçable. */
+.bar.mince .grip { width: 5px; }
+.bar.mince .grip.g-l { left: -2px; }
+.bar.mince .grip.g-r { right: -2px; }
+.bar.mince .grip::after { width: 1.5px; height: 8px; }
+
+/* Barre minuscule (un ou deux jours au zoom le plus large) : on retire les
+   poignées, la durée se règle par les champs Début/Fin du panneau. */
+.bar.court .grip { display: none; }
+
+/* --- raccord de dépendance ------------------------------------------------
+   Volontairement tenu à l'écart des bords de la barre : le bord sert à
+   redimensionner, le rond bleu à relier. Apparaît au survol. */
+.bar .dep-handle {
+  position: absolute;
+  top: 50%;
+  width: 12px; height: 12px;
+  margin-top: -6px;
+  border-radius: 99px;
+  background: var(--surface);
+  border: 1.6px solid var(--accent);
+  cursor: crosshair;
+  opacity: 0;
+  transform: scale(.7);
+  transition: opacity var(--speed), transform var(--speed);
+  z-index: 7;
+}
+.bar .dep-handle.h-r { right: -25px; }
+.bar .dep-handle.h-l { left: -25px; }
+/* survoler la barre l'affiche ; survoler le rond lui-même aussi (il reste un
+   descendant de la barre, donc le :hover du parent tient) */
+.bar:hover .dep-handle,
+.bar .dep-handle:hover { opacity: 1; transform: scale(1); }
+.bar .dep-handle:hover { background: var(--accent); }
+
+/* jalons */
+.milestone {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 18px; height: 18px;
+  border-radius: 5px;
+  background: var(--bar-color, var(--today));
+  color: #fff;
+  font-size: 8.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  z-index: 3;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, .22);
+  letter-spacing: -.02em;
+}
+.milestone.is-sel { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--accent); }
+.milestone-label {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  left: 16px;
+  font-size: 11px;
+  font-weight: 550;
+  color: var(--ink-2);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* -------------------------------------------------- calques du graphique -- */
+/* Deux couches SVG superposées au corps. Le fond (bandeaux de groupe,
+   week-ends, grille, ligne du jour) passe SOUS les barres ; les flèches
+   passent au-dessus. Empilement : fond 0 < flèches 1 < barres 2 < jalons 3.
+   Sans le second calque, les rectangles opaques des week-ends passaient
+   par-dessus les libellés et coupaient le texte des jalons.
+   `stroke: none` : la règle globale `svg { stroke: currentColor }` est là
+   pour les icônes ; sans elle, chaque rectangle recevait un contour foncé de
+   1,7 px (barres noires verticales à l'échelle semaine). Les traits et les
+   flèches gardent le leur, posé en attribut ou par classe. */
+.links, .fond {
+  position: absolute;
+  top: 0; left: 0;
+  pointer-events: none;
+  overflow: visible;
+  stroke: none;
+}
+.fond  { z-index: 0; }
+.links { z-index: 1; }
+.links path.arrow {
+  fill: none;
+  stroke: var(--link);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.links path.arrow.hot { stroke: var(--link-on); stroke-width: 1.8; }
+.links .head-mark { fill: var(--link); stroke: none; }
+.links path.arrow.hot + .head-mark { fill: var(--link-on); }
+.links path.ghost { fill: none; stroke: var(--link-on); stroke-width: 1.6; stroke-dasharray: 4 3; }
+
+/* ----------------------------------------------------------- inspecteur -- */
+.inspector {
+  flex: 0 0 auto;
+  width: 0;
+  overflow: hidden;
+  background: var(--surface);
+  border-left: 1px solid var(--line);
+  transition: width 180ms ease;
+  display: flex;
+  flex-direction: column;
+}
+.inspector.open { width: 312px; }
+
+.insp { width: 312px; display: flex; flex-direction: column; height: 100%; }
+
+.insp-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.insp-head h2 { margin: 0; font-size: 12px; font-weight: 650; letter-spacing: .02em; text-transform: uppercase; color: var(--muted); flex: 1 1 auto; }
+
+.insp-body { flex: 1 1 auto; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 13px; }
+
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field > label {
+  font-size: 10.5px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--faint);
+}
+.field input[type="text"],
+.field input[type="date"],
+.field input[type="number"],
+.field select,
+.field textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  padding: 6px 8px;
+  font-size: 12.5px;
+  color: var(--ink);
+}
+.field input:focus, .field select:focus, .field textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.field textarea { resize: vertical; min-height: 60px; font-family: inherit; }
+.field .hint { font-size: 11px; color: var(--faint); }
+
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 4px 3px 8px;
+  border-radius: 99px;
+  background: var(--surface-3);
+  border: 1px solid var(--line);
+  font-size: 11px;
+  color: var(--ink-2);
+  max-width: 100%;
+}
+.chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px; }
+.chip button {
+  border: 0; background: transparent; cursor: pointer; color: var(--faint);
+  width: 16px; height: 16px; border-radius: 99px; display: grid; place-items: center; padding: 0;
+}
+.chip button:hover { background: var(--danger-soft); color: var(--danger); }
+
+.swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+.swatch {
+  width: 22px; height: 22px;
+  border-radius: 6px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  position: relative;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .06);
+}
+.swatch[aria-pressed="true"] { border-color: var(--ink); }
+
+.insp-actions { flex: 0 0 auto; display: flex; gap: 6px; padding: 11px 12px; border-top: 1px solid var(--line); }
+.insp-actions .btn { flex: 1 1 auto; justify-content: center; }
+
+.insp h3 {
+  margin: 2px 0 -4px;
+  font-size: 10.5px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--faint);
+  padding-top: 4px;
+  border-top: 1px solid var(--line-2);
+}
+
+.keys { display: grid; grid-template-columns: 1fr; gap: 2px; }
+.keys div { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 3px 0; font-size: 12px; color: var(--muted); }
+.keys div b { font-weight: 500; color: var(--ink-2); }
+
+.empty-note { color: var(--muted); font-size: 12.5px; line-height: 1.6; }
+.empty-note b { color: var(--ink-2); font-weight: 600; }
+
+/* --------------------------------------------------------------- toasts -- */
+.toast-wrap {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  align-items: center;
+  z-index: 90;
+  pointer-events: none;
+}
+.toast {
+  background: var(--ink);
+  color: var(--surface);
+  padding: 7px 13px;
+  border-radius: 99px;
+  font-size: 12.5px;
+  font-weight: 500;
+  box-shadow: var(--sh-pop);
+  animation: toast-in 160ms ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.toast.ok { background: var(--ok); color: #fff; }
+.toast.warn { background: var(--danger); color: #fff; }
+.toast kbd { border-color: rgba(255, 255, 255, .35); background: transparent; color: rgba(255, 255, 255, .8); }
+@keyframes toast-in { from { opacity: 0; transform: translateY(6px); } }
+
+/* ------------------------------------------------------------- info vol -- */
+.drag-tip {
+  position: fixed;
+  z-index: 95;
+  background: var(--ink);
+  color: var(--surface);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  pointer-events: none;
+  box-shadow: var(--sh-2);
+  white-space: nowrap;
+}
+.drag-tip[hidden] { display: none; }
+
+/* -------------------------------------------------------------- poignée -- */
+.col-grip {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--left-w);
+  width: 6px;
+  margin-left: -3px;
+  cursor: col-resize;
+  z-index: 35;
+}
+.col-grip:hover { background: linear-gradient(to right, transparent 2px, var(--accent) 2px 4px, transparent 4px); }
+
+/* ------------------------------------------------------ dépôt de fichier -- */
+body.depot::after {
+  content: "Relâcher pour ouvrir ce planning";
+  position: fixed;
+  inset: 10px;
+  display: grid;
+  place-items: center;
+  border: 2px dashed var(--accent);
+  border-radius: 16px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: .01em;
+  opacity: .95;
+  z-index: 200;
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------- réduit -- */
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 1ms !important; transition-duration: 1ms !important; }
+}
+
+/* ------------------------------------------------------------- impression -- */
+@media print {
+  @page { size: A3 landscape; margin: 10mm; }
+
+  :root { --bg: #fff; --surface: #fff; --surface-2: #fff; --surface-3: #fff; }
+  html[data-theme="sombre"] { --bg: #fff; --surface: #fff; --ink: #000; --ink-2: #222; --muted: #555; --line: #ddd; --grid: #eee; --grid-strong: #ccc; }
+
+  body { overflow: visible; }
+  .app { height: auto; }
+  .topbar, .inspector, .toast-wrap, .col-grip, .dep-handle, .grip { display: none !important; }
+  .workspace { display: block; }
+  .chart-scroller { overflow: visible; height: auto; }
+  .head { position: static; }
+  .head-left, .row-left { position: static; }
+  .canvas { width: max-content; }
+  .row { break-inside: avoid; }
+  .bar { box-shadow: none; }
+  .bar:hover { filter: none; }
+}

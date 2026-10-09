@@ -1,0 +1,14 @@
+# Système / éditeurs
+.DS_Store
+*~
+Thumbs.db
+.vscode/
+.idea/
+
+# Restes d'exécution
+__pycache__/
+*.pyc
+
+# Exports produits par l'outil (images et sauvegardes jetables)
+*.tmp.json
+apercu_*.png
