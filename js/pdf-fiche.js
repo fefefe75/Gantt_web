@@ -88,17 +88,23 @@
         thickness: ep || 0.4, color: rgb(c || TRAIT) });
     }
 
+    /* Découpe un texte en lignes qui tiennent dans `largeur`, en respectant les
+       retours à la ligne de l'auteur : une ligne vide reste une ligne vide. */
     function couper(s, largeur, gras, taille) {
       var police = gras ? helvB : helv;
-      var mots = String(s == null ? '' : s).split(/\s+/);
-      var out = [], ligne = '';
-      for (var i = 0; i < mots.length; i++) {
-        var essai = ligne ? ligne + ' ' + mots[i] : mots[i];
-        if (!ligne || police.widthOfTextAtSize(essai, taille) <= largeur) ligne = essai;
-        else { out.push(ligne); ligne = mots[i]; }
-      }
-      if (ligne) out.push(ligne);
-      return out;
+      var out = [];
+      String(s == null ? '' : s).split(/\r?\n/).forEach(function (para) {
+        var mots = para.split(/\s+/);
+        if (mots.length === 1 && !mots[0]) { out.push(''); return; }
+        var ligne = '';
+        for (var i = 0; i < mots.length; i++) {
+          var essai = ligne ? ligne + ' ' + mots[i] : mots[i];
+          if (!ligne || police.widthOfTextAtSize(essai, taille) <= largeur) ligne = essai;
+          else { out.push(ligne); ligne = mots[i]; }
+        }
+        if (ligne) out.push(ligne);
+      });
+      return out.length ? out : [''];
     }
 
     function hauteurTexte(s, largeur, gras, taille) {
@@ -200,20 +206,23 @@
       y += 2;
     }
 
+    /* Hauteur d'un champ dans une cellule : une seule formule, pour la mesure
+       comme pour le dessin — sinon le champ déborde de sa ligne. */
+    function hauteurChamp(c, w) {
+      var taille = c.taille || 8;
+      if (!c.multiligne) {
+        return c.valeur ? hauteurTexte(c.valeur, w - 10, false, taille) : 12.4;
+      }
+      /* une ligne de marge : le lecteur replie parfois un mot de plus */
+      return (couper(c.valeur || '', w - 10, false, taille).length + 0.75) * 10.6 + 6;
+    }
+
     /* ----------------------------------------------- hauteur / dessin cellule */
     function hauteurBlocs(blocs, w) {
       var h = 5.6;
       blocs.forEach(function (b) {
         if (b.cases) { h += placesCases(b, w).lignes * 12.4; return; }
-        if (b.champ) {
-          var c = b.champ, txt = c.valeur || '';
-          if (c.multiligne) {
-            h += Math.max(3, couper(txt, w - 10, false, c.taille || 8).length) * 10.6 + 6;
-          } else {
-            h += (txt ? hauteurTexte(txt, w - 10, false, c.taille || 8) : 12.4) + 1.6;
-          }
-          return;
-        }
+        if (b.champ) { h += hauteurChamp(b.champ, w) + 1.6; return; }
         h += hauteurTexte(b.txt, w - 10, false, b.taille || 8) + 2;
       });
       return Math.max(h, 20);
@@ -244,9 +253,7 @@
           return;
         }
         if (b.champ) {
-          var c = b.champ, h;
-          if (c.multiligne) h = Math.max(3, couper(c.valeur || '', w - 10, false, c.taille || 8).length) * 10.6 + 6;
-          else h = (c.valeur ? hauteurTexte(c.valeur, w - 10, false, c.taille || 8) : 12.4);
+          var c = b.champ, h = hauteurChamp(c, w);
           champTexte(prefixe + '_' + c.cle, c.valeur, x + 4, yy, w - 8, h + 1,
             { multiligne: c.multiligne, taille: c.taille || 8 });
           yy += h + 3;
@@ -362,7 +369,11 @@
 
       texte('Remarques générales, et ce qu\'il demande en plus :', MG, y + 8, { taille: 8, gras: true });
       y += 11;
-      var hTxt = 96;
+      /* le cadre grandit avec les remarques : un compte rendu long ne doit pas
+         être rogné dans un carré trop petit */
+      var lignesRem = couper(f.avis.remarque || '', LARG - 10, false, 8).length;
+      var hTxt = Math.max(96, (lignesRem + 1.5) * 10.6 + 8);
+      if (y + hTxt + 34 > bas) nouveauPage();
       champTexte('avis_remarque', f.avis.remarque, MG, y, LARG, hTxt, { multiligne: true, taille: 8 });
       y += hTxt + 8;
 
@@ -382,11 +393,11 @@
 
     function rangeeFaitVide() {
       return [
-        { blocs: [{ champ: { cle: 'texte', valeur: '' } }] },
+        { blocs: [{ champ: { cle: 'texte', valeur: '', multiligne: true } }] },
         { blocs: [{ champ: { cle: 'jalon', valeur: '', taille: 7.8 } }] },
         { blocs: [{ cases: ETATS.map(function (e) {
           return { valeur: e[0], txt: e[1] }; }), type: 'choix', choixCle: 'etat', choisi: '', inline: true }] },
-        { blocs: [{ champ: { cle: 'preuve', valeur: '', taille: 7.6 } }] },
+        { blocs: [{ champ: { cle: 'preuve', valeur: '', taille: 7.6, multiligne: true } }] },
         { blocs: [{ cases: [{ valeur: 'vu', txt: '' }], cle: 'vu' }] }
       ];
     }
@@ -394,12 +405,12 @@
     function rangeesFait() {
       var out = f.fait.map(function (l) {
         return [
-          { blocs: [{ champ: { cle: 'texte', valeur: l.texte } }] },
+          { blocs: [{ champ: { cle: 'texte', valeur: l.texte, multiligne: true } }] },
           { blocs: [{ champ: { cle: 'jalon', valeur: l.jalon, taille: 7.8 } }] },
           { blocs: [{ cases: ETATS.map(function (e) {
             return { valeur: e[0], txt: e[1] }; }), type: 'choix', choixCle: 'etat',
             choisi: l.etat, inline: true }] },
-          { blocs: [{ champ: { cle: 'preuve', valeur: l.preuve, taille: 7.6 } }] },
+          { blocs: [{ champ: { cle: 'preuve', valeur: l.preuve, taille: 7.6, multiligne: true } }] },
           { blocs: [{ cases: [{ valeur: 'vu', txt: '', coche: !!l.vu }], cle: 'vu' }] }
         ];
       });
@@ -414,15 +425,15 @@
       return [
         { blocs: [{ txt: String(numero) }] },
         { blocs: [
-          { champ: { cle: 'texte', valeur: '' } },
-          { champ: { cle: 'pourquoi', valeur: '', taille: 7.4 } },
+          { champ: { cle: 'texte', valeur: '', multiligne: true } },
+          { champ: { cle: 'pourquoi', valeur: '', taille: 7.4, multiligne: true } },
           { txt: '', taille: 7, gris: true },
           { cases: [{ valeur: 'retenu', txt: 'je garde cette idée' }], cle: 'retenu' }
         ] },
         { blocs: [
           { cases: AVIS.map(function (a) { return { valeur: a[0], txt: a[1] }; }),
             type: 'choix', choixCle: 'avis', choisi: '' },
-          { champ: { cle: 'remarque', valeur: '', taille: 7.4 } }
+          { champ: { cle: 'remarque', valeur: '', taille: 7.4, multiligne: true } }
         ] }
       ];
     }
@@ -432,8 +443,8 @@
         return [
           { blocs: [{ txt: String(i + 1) }] },
           { blocs: [
-            { champ: { cle: 'texte', valeur: l.texte } },
-            { champ: { cle: 'pourquoi', valeur: l.pourquoi, taille: 7.4 } },
+            { champ: { cle: 'texte', valeur: l.texte, multiligne: true } },
+            { champ: { cle: 'pourquoi', valeur: l.pourquoi, taille: 7.4, multiligne: true } },
             /* le jalon visé, écrit tel qu'il est dans le Gantt au moment du PDF */
             { txt: l.jalon ? 'Jalon : ' + G.libelleJalon(l.jalon) : '', taille: 7, gris: true },
             { cases: [{ valeur: 'retenu', txt: 'je garde cette idée', coche: !!l.retenu }], cle: 'retenu' }
@@ -441,7 +452,7 @@
           { blocs: [
             { cases: AVIS.map(function (a) { return { valeur: a[0], txt: a[1] }; }),
               type: 'choix', choixCle: 'avis', choisi: l.avis },
-            { champ: { cle: 'remarque', valeur: l.remarque, taille: 7.4 } }
+            { champ: { cle: 'remarque', valeur: l.remarque, taille: 7.4, multiligne: true } }
           ] }
         ];
       });
@@ -455,7 +466,7 @@
     function rangeeDemandeVide(numero) {
       return [
         { blocs: [{ txt: String(numero) }] },
-        { blocs: [{ champ: { cle: 'texte', valeur: '' } },
+        { blocs: [{ champ: { cle: 'texte', valeur: '', multiligne: true } },
                   { txt: '', taille: 7, gris: true }] },
         { blocs: [{ champ: { cle: 'echeance', valeur: '', taille: 7.8 } }] },
         { blocs: [{ cases: [{ valeur: 'fait', txt: '' }], cle: 'fait' }] }
@@ -467,7 +478,7 @@
         return [
           { blocs: [{ txt: String(i + 1) }] },
           { blocs: [
-            { champ: { cle: 'texte', valeur: l.texte } },
+            { champ: { cle: 'texte', valeur: l.texte, multiligne: true } },
             { txt: l.jalon ? 'Jalon : ' + G.libelleJalon(l.jalon) : '', taille: 7, gris: true }
           ] },
           { blocs: [{ champ: { cle: 'echeance', valeur: l.echeance, taille: 7.8 } }] },
@@ -485,12 +496,12 @@
     function rangeeRexVide(numero) {
       return [
         { blocs: [{ txt: String(numero) }] },
-        { blocs: [{ champ: { cle: 'fait', valeur: '', taille: 7.8 } }] },
+        { blocs: [{ champ: { cle: 'fait', valeur: '', taille: 7.8, multiligne: true } }] },
         { blocs: [{ cases: EFFETS.map(function (e) {
           return { valeur: e[0], txt: e[1] }; }), type: 'choix', choixCle: 'effet',
           choisi: '', inline: true }] },
-        { blocs: [{ champ: { cle: 'cause', valeur: '', taille: 7.8 } }] },
-        { blocs: [{ champ: { cle: 'change', valeur: '', taille: 7.8 } }] },
+        { blocs: [{ champ: { cle: 'cause', valeur: '', taille: 7.8, multiligne: true } }] },
+        { blocs: [{ champ: { cle: 'change', valeur: '', taille: 7.8, multiligne: true } }] },
         { blocs: [{ cases: [{ valeur: 'valide', txt: '' }], cle: 'valide' }] }
       ];
     }
@@ -499,12 +510,12 @@
       var out = f.rex.map(function (l, i) {
         return [
           { blocs: [{ txt: String(i + 1) }] },
-          { blocs: [{ champ: { cle: 'fait', valeur: l.fait, taille: 7.8 } }] },
+          { blocs: [{ champ: { cle: 'fait', valeur: l.fait, taille: 7.8, multiligne: true } }] },
           { blocs: [{ cases: EFFETS.map(function (e) {
             return { valeur: e[0], txt: e[1] }; }), type: 'choix', choixCle: 'effet',
             choisi: l.effet, inline: true }] },
-          { blocs: [{ champ: { cle: 'cause', valeur: l.cause, taille: 7.8 } }] },
-          { blocs: [{ champ: { cle: 'change', valeur: l.change, taille: 7.8 } }] },
+          { blocs: [{ champ: { cle: 'cause', valeur: l.cause, taille: 7.8, multiligne: true } }] },
+          { blocs: [{ champ: { cle: 'change', valeur: l.change, taille: 7.8, multiligne: true } }] },
           { blocs: [{ cases: [{ valeur: 'valide', txt: '', coche: !!l.valide }], cle: 'valide' }] }
         ];
       });

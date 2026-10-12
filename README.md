@@ -165,6 +165,27 @@ Deux colonnes ne veulent jamais dire la même chose :
 | **Imprimer (figée)** | la même feuille **sans champs**, à imprimer ou à poser dans Confluence |
 | **Exporter / Importer en JSON** | la fiche seule, en clair, modifiable dans un éditeur de texte |
 
+### Écrire : les zones replient et grandissent
+
+Tout ce qui peut être long — une proposition, son « pourquoi », la preuve d'une
+tâche, une ligne de REX, les remarques du tuteur — est une **zone de texte**, pas
+un champ d'une seule ligne :
+
+- le texte **revient à la ligne** au lieu d'être coupé au bord de la colonne ;
+- **`Entrée` fait un vrai retour à la ligne** : vos paragraphes sont gardés tels
+  quels, à l'écran, dans le JSON, à l'impression et dans le PDF ;
+- la **boîte grandit avec le texte** : un compte rendu de vingt lignes agrandit le
+  cadre au lieu d'être rogné. La hauteur se recalcule à la frappe, au changement
+  de fiche et au redimensionnement de la fenêtre ;
+- pour passer au champ suivant, `Tab` ou un clic — `Entrée` reste à vous.
+
+Mesuré : 4 lignes dans une proposition font passer la zone de 22 px à 69 px, 12
+lignes de remarques à 200 px, sans débordement (`scrollHeight ≤ clientHeight`) et
+sans débordement horizontal de la feuille. Les 4 et 12 lignes se relisent
+identiques dans le modèle, dans le JSON exporté et dans le PDF à champs (48
+champs, 2 pages A4) ; la fiche imprimée tient sur une A4 complète, signature
+comprise.
+
 ### Le PDF à remplir
 
 Le fichier produit n'est pas une image de la fiche : c'est un **formulaire**.

@@ -1364,6 +1364,16 @@ html[data-theme="sombre"] .fi-type.rex { color: #eeb04a; }
   font: inherit;
   color: inherit;
 }
+/* une zone de texte replie et grandit : jamais de coupe, jamais de barre de
+   défilement à l'intérieur de la feuille (la hauteur est posée par le script) */
+.feuille textarea.l {
+  resize: none;
+  overflow: hidden;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.32;
+  min-height: 1.6em;
+}
 .feuille input.l:focus, .feuille textarea.l:focus {
   outline: none;
   border-bottom-color: var(--accent);
@@ -1379,7 +1389,7 @@ html[data-theme="sombre"] .fi-type.rex { color: #eeb04a; }
 
 .fe-avis { border: 1px solid #cbd2da; padding: 6px 8px; }
 .avis-ligne { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; margin-bottom: 6px; }
-.fe-avis textarea.l { border: 1px solid #d6dae0; border-radius: 3px; padding: 4px; font-size: 9pt; resize: vertical; }
+.fe-avis textarea.l { border: 1px solid #d6dae0; border-radius: 3px; padding: 4px; font-size: 9pt; }
 .fe-sign { display: flex; gap: 26px; margin-top: 8px; font-size: 9pt; }
 .fe-sign label { display: flex; align-items: baseline; gap: 6px; }
 .fe-sign input { width: 50mm; }

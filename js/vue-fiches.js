@@ -70,6 +70,35 @@
       ' spellcheck="false">';
   }
 
+  /* Une zone de texte, pour tout ce qui peut être long : elle replie les lignes
+     et grandit avec ce qu'on écrit (voir ajuster()), au lieu de couper comme un
+     champ d'une seule ligne. Les retours à la ligne de l'auteur sont gardés. */
+  function zone(chemin, valeur, o) {
+    o = o || {};
+    var v = valeur == null ? '' : String(valeur);
+    /* le parseur HTML avale le premier saut de ligne juste après <textarea> */
+    if (v.charAt(0) === '\n') v = '\n' + v;
+    return '<textarea class="l' + (o.petit ? ' petit' : '') + '" rows="1"' +
+      (o.hauteur ? ' style="min-height:' + o.hauteur + 'px"' : '') +
+      ' data-ch="' + chemin + '"' +
+      (o.placeholder ? ' placeholder="' + U.esc(o.placeholder) + '"' : '') +
+      ' spellcheck="false">' + U.esc(v) + '</textarea>';
+  }
+
+  /* Hauteur ajustée au contenu : la boîte grandit, rien n'est coupé ni caché. */
+  function ajuster(z) {
+    if (!z || z.tagName !== 'TEXTAREA') return;
+    z.style.height = 'auto';
+    z.style.height = (z.scrollHeight + 2) + 'px';
+  }
+
+  F.ajusterTout = function () {
+    if (!el.editeur || !el.root || el.root.hidden) return;
+    /* une zone cachée a une hauteur de 0 : on ne mesure que ce qui est affiché */
+    if (el.editeur.offsetParent === null) return;
+    Array.prototype.forEach.call(el.editeur.querySelectorAll('textarea'), ajuster);
+  };
+
   function caseA(chemin, coche, texte, type) {
     return '<label class="case"><input type="' + (type || 'checkbox') + '" data-ch="' + chemin + '"' +
       (coche ? ' checked' : '') + '><span>' + U.esc(texte) + '</span></label>';
@@ -133,8 +162,9 @@
         }).join('') +
         caseA('avis.vu', f.avis.vu, 'Le tuteur a pris connaissance de la fiche et des preuves') +
       '</div>' +
-      '<textarea class="l" data-ch="avis.remarque" rows="3"' +
-        ' placeholder="Remarques générales du tuteur">' + U.esc(f.avis.remarque) + '</textarea>' +
+      zone('avis.remarque', f.avis.remarque, {
+        hauteur: 78, placeholder: 'Remarques générales du tuteur — Entrée pour aller à la ligne'
+      }) +
       '<div class="fe-sign">' +
         '<label>Nom du tuteur ' + champ('avis.nom', f.avis.nom, { petit: true }) + '</label>' +
         '<label>Date ' + champ('avis.date', f.avis.date, { petit: true, date: true }) + '</label>' +
@@ -175,14 +205,14 @@
 
     f.fait.forEach(function (l, i) {
       s += '<tr>' +
-        '<td>' + champ('fait.' + i + '.texte', l.texte, { placeholder: 'tâche' }) + '</td>' +
+        '<td>' + zone('fait.' + i + '.texte', l.texte, { placeholder: 'tâche' }) + '</td>' +
         '<td>' + selectJalon('fait.' + i + '.jalon', l.jalon, '—') + '</td>' +
         '<td class="etat">' +
           [['termine', 'terminé'], ['encours', 'en cours'], ['reporte', 'reporté']].map(function (e) {
             return radioA('etat-' + l.id, 'fait.' + i + '.etat', e[0], l.etat, e[1]);
           }).join('') +
         '</td>' +
-        '<td>' + champ('fait.' + i + '.preuve', l.preuve, { petit: true }) + '</td>' +
+        '<td>' + zone('fait.' + i + '.preuve', l.preuve, { petit: true }) + '</td>' +
         '<td class="c">' + caseA('fait.' + i + '.vu', l.vu, '') + '</td>' +
         '<td class="noprint c"><button class="mini" data-f="suppr-ligne" data-sec="fait" data-i="' + i + '"' +
           ' title="Retirer la ligne">×</button></td>' +
@@ -203,8 +233,8 @@
     f.idees.forEach(function (l, i) {
       s += '<tr>' +
         '<td class="c">' + (i + 1) + '</td>' +
-        '<td>' + champ('idees.' + i + '.texte', l.texte, { placeholder: 'ce que je propose' }) +
-          champ('idees.' + i + '.pourquoi', l.pourquoi, { petit: true,
+        '<td>' + zone('idees.' + i + '.texte', l.texte, { placeholder: 'ce que je propose' }) +
+          zone('idees.' + i + '.pourquoi', l.pourquoi, { petit: true,
             placeholder: 'pourquoi — options écartées, coût, risque' }) +
           caseA('idees.' + i + '.retenu', l.retenu, 'je garde cette idée') +
           '<div class="lien-ligne">' + selectJalon('idees.' + i + '.jalon', l.jalon) +
@@ -213,7 +243,7 @@
           AVIS.map(function (a) {
             return radioA('avis-idee-' + l.id, 'idees.' + i + '.avis', a[0], l.avis, a[1]);
           }).join('') +
-          champ('idees.' + i + '.remarque', l.remarque, { petit: true, placeholder: 'remarque du tuteur' }) +
+          zone('idees.' + i + '.remarque', l.remarque, { petit: true, placeholder: 'remarque du tuteur' }) +
         '</td>' +
         '<td class="noprint c"><button class="mini" data-f="suppr-ligne" data-sec="idees" data-i="' + i + '"' +
           ' title="Retirer la proposition">×</button></td>' +
@@ -232,7 +262,7 @@
     f.demandes.forEach(function (l, i) {
       s += '<tr>' +
         '<td class="c">' + (i + 1) + '</td>' +
-        '<td>' + champ('demandes.' + i + '.texte', l.texte, {}) +
+        '<td>' + zone('demandes.' + i + '.texte', l.texte, {}) +
           '<div class="lien-ligne">' + selectJalon('demandes.' + i + '.jalon', l.jalon, '— jalon —') +
             boutonGantt(l, 'demandes', i) + lienJalon(l) + '</div></td>' +
         '<td>' + champ('demandes.' + i + '.echeance', l.echeance, { petit: true, placeholder: 'date' }) + '</td>' +
@@ -263,13 +293,13 @@
     f.rex.forEach(function (l, i) {
       s += '<tr>' +
         '<td class="c">' + (i + 1) + '</td>' +
-        '<td>' + champ('rex.' + i + '.fait', l.fait, { petit: true }) + '</td>' +
+        '<td>' + zone('rex.' + i + '.fait', l.fait, { petit: true }) + '</td>' +
         '<td class="etat">' +
           radioA('effet-' + l.id, 'rex.' + i + '.effet', 'positif', l.effet, 'positif') +
           radioA('effet-' + l.id, 'rex.' + i + '.effet', 'negatif', l.effet, 'négatif') +
         '</td>' +
-        '<td>' + champ('rex.' + i + '.cause', l.cause, { petit: true }) + '</td>' +
-        '<td>' + champ('rex.' + i + '.change', l.change, { petit: true }) + '</td>' +
+        '<td>' + zone('rex.' + i + '.cause', l.cause, { petit: true }) + '</td>' +
+        '<td>' + zone('rex.' + i + '.change', l.change, { petit: true }) + '</td>' +
         '<td class="c">' + caseA('rex.' + i + '.valide', l.valide, '') + '</td>' +
         '<td class="noprint c"><button class="mini" data-f="suppr-ligne" data-sec="rex" data-i="' + i + '"' +
           ' title="Retirer la ligne">×</button></td>' +
@@ -325,6 +355,7 @@
     else if (!courante || !G.ficheById(courante)) courante = G.state.fiches[0].id;
     rendreListe();
     rendreEditeur();
+    F.ajusterTout();                 /* les zones reprennent la hauteur de leur texte */
   };
 
   /* ======================================================= les interactions == */
@@ -359,8 +390,16 @@
   F.bind = function () {
     if (!el.root) F.cache();
 
-    el.root.addEventListener('input', function (e) { surChamp(e, false); });
-    el.root.addEventListener('change', function (e) { surChamp(e, true); });
+    el.root.addEventListener('input', function (e) {
+      surChamp(e, false);
+      if (e.target.tagName === 'TEXTAREA') ajuster(e.target);
+    });
+    el.root.addEventListener('change', function (e) {
+      surChamp(e, true);
+      if (e.target.tagName === 'TEXTAREA') ajuster(e.target);
+    });
+
+    window.addEventListener('resize', function () { F.ajusterTout(); });
 
     /* Entrée valide le champ et referme l'édition (on ne parie pas sur blur) */
     el.root.addEventListener('keydown', function (e) {
