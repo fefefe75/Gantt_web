@@ -38,6 +38,35 @@ C'est **un dossier**, pas une page isolée : copier `index.html` seul donne une
 page blanche. Pour l'emporter ailleurs, copier le dossier entier (`css/`, `js/`,
 `vendor/` compris).
 
+## Rien ne sort de la machine
+
+Aucune ressource distante n'est chargée : les treize fichiers du dossier
+(`index.html`, la feuille de style, les dix scripts, `vendor/pdf-lib.min.js`),
+et rien d'autre. Dans le code il n'y a ni `fetch`, ni `XMLHttpRequest`, ni
+`WebSocket`, ni `sendBeacon` ; pas de police, d'icône ni d'image distante. Le
+seul `http://` du dossier est `http://www.w3.org/2000/svg` — un identifiant de
+namespace dans les SVG, que le navigateur ne télécharge jamais.
+
+Mesuré, **réseau coupé** (`http://`, `https://` et `ws://` bloqués dans le
+navigateur) : la page s'ouvre sur les 33 tâches de l'exemple, les trois vues
+répondent, la fiche s'écrit, le PDF à champs sort (48 champs, 2 pages A4), le
+JSON sort, les trois impressions sortent — **0 requête vers l'extérieur**,
+13 fichiers locaux chargés, 0 erreur JS.
+
+Où c'est sauvegardé, et ce que ça vaut :
+
+| | Ce que c'est | Ce que ça vaut |
+|---|---|---|
+| **Automatique** | chaque modification est écrite dans le stockage du navigateur | tu peux fermer l'onglet, tout revient au rechargement |
+| **Le fichier `.json`** | `Ctrl+S` / *Enregistrer sous* | **la vraie sauvegarde** : à emporter, à archiver, à comparer dans le temps |
+| **Les sorties** | PDF à champs, PDF figé, JSON d'une fiche, SVG, PNG | dans `~/Téléchargements`, à joindre ou à déposer |
+
+Le stockage du navigateur n'est **pas** une sauvegarde : il tient tant qu'on ne
+vide pas les données du navigateur, et chaque navigateur a le sien (le même
+dossier ouvert dans Chromium et dans Firefox ne montre pas le même état). Seul
+le fichier `.json` protège vraiment le travail — d'où le message qui dit ce
+qu'il contient après chaque enregistrement.
+
 ## Ouvrir / enregistrer
 
 Double-clic sur `index.html`. Tout fonctionne en local, sans réseau.
@@ -198,7 +227,14 @@ ses demandes dans le grand cadre du bas. Il lui faut seulement un lecteur PDF
 Mesuré sur la fiche de suivi d'exemple : **48 champs** (31 de texte, 17 cases et
 choix exclusifs) sur 2 pages A4 ; le REX en compte 24 sur une page. Vérifié avec
 pypdf — un autre moteur que celui qui écrit le fichier : les champs se relisent,
-se modifient et se réenregistrent.
+se modifient et se réenregistrent, y compris les champs multilignes (les
+paragraphes d'une zone de texte se retrouvent ligne par ligne dans le PDF).
+
+*Non vérifié* : le comportement des lecteurs PDF (Acrobat, Okular, Firefox,
+Aperçu) au remplissage et à l'enregistrement — aucun n'est installé sur cette
+machine. Ce qui est prouvé, c'est que le fichier contient de vrais champs
+AcroForm et que leurs valeurs se relisent ; l'usage par le tuteur dans son
+lecteur reste à confirmer au premier envoi.
 
 **Confluence ne remplit pas un PDF.** Son aperçu affiche le document ; pour le
 modifier on passe par « Modifier » (qui ouvre l'Atlassian Companion, télécharge
@@ -350,6 +386,10 @@ Un objet simple, modifiable à la main :
 - `jalon` porte **l'étiquette** du jalon visé (`M2`), jamais son nom : renommer
   le jalon dans le Gantt ne casse donc pas le lien. `tache` porte l'identifiant
   de la tâche créée dans le Gantt quand la proposition y passe (`↦ Gantt`).
+- Les zones de texte longues (proposition, « pourquoi », preuve, remarque du
+  tuteur, colonnes du REX) gardent leurs **retours à la ligne** : dans le fichier
+  ils s'écrivent `\n`, comme dans n'importe quel JSON — à la main, une chaîne
+  peut donc s'étaler sur plusieurs paragraphes.
 - Un fichier sans `subs` ni `fiches` se charge quand même : les deux manquants
   démarrent vides.
 
