@@ -46,16 +46,25 @@ Pour rouvrir un planning : le bouton **Ouvrir** de la barre d'outils, `Ctrl+O`,
 ou en **glissant** le fichier `.json` n'importe où dans la fenêtre.
 
 `Ctrl+S` réécrit **le fichier ouvert** : plus de question à chaque fois. Pour
-choisir un autre fichier : `Ctrl+Maj+S`, ou le menu `⋯` → *Enregistrer sous…*.
-Si aucun fichier n'est encore associé (planning commencé à zéro, ou fichier
-ouvert par glisser-déposer), le premier `Ctrl+S` demande où enregistrer, puis y
-revient tout seul les fois suivantes.
+choisir un autre fichier : le bouton **Enregistrer sous** de la barre d'outils,
+`Ctrl+Maj+S`, ou le menu `⋯` → *Enregistrer sous…*. Si aucun fichier n'est encore
+associé (planning commencé à zéro, ou fichier ouvert par glisser-déposer), le
+premier `Ctrl+S` demande où enregistrer, puis y revient tout seul les fois
+suivantes.
 
-Le planning **et** les fiches sont dans le même fichier `.json` : un seul
-document à sauvegarder, un seul à rouvrir. Chaque modification est en plus
-conservée dans le navigateur et retrouvée au rechargement — `Ctrl+S` n'est pas
-obligatoire pour ne rien perdre. Si le navigateur n'offre pas le sélecteur de
-fichier (Firefox, Safari), le `.json` est téléchargé à la place.
+Le fichier `.json` contient **tout** : le titre, les groupes, les tâches avec
+leurs dates et leurs liens, les jalons, les tâches affiliées (nom et case
+cochée) et les fiches complètes avec leurs lignes et leurs avis. Le message
+affiché après l'enregistrement le dit en clair — `33 tâches dont 6 jalons,
+1 affiliée, 1 fiche` — pour qu'on n'ait pas à le deviner. Et il se relit :
+rechargé dans un état vide, il redonne exactement ce qu'il portait (vérifié :
+mêmes tâches, mêmes affiliées cochées, même fiche, même lien de jalon).
+
+Le planning **et** les fiches sont donc dans le même fichier : un seul document
+à sauvegarder, un seul à rouvrir. Chaque modification est en plus conservée dans
+le navigateur et retrouvée au rechargement — `Ctrl+S` n'est pas obligatoire pour
+ne rien perdre. Si le navigateur n'offre pas le sélecteur de fichier (Firefox,
+Safari), le `.json` est téléchargé dans `~/Téléchargements`.
 
 Servir le dossier reste possible et ne change rien :
 

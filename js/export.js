@@ -44,8 +44,24 @@
 
   function confirmeEcriture() {
     G.dirty = false;
-    V.toast('Enregistré dans « ' + (G.state.fileHandle ? G.state.fileHandle.name : nomFichier('json')) + ' »', 'ok');
+    V.toast('Enregistré dans « ' + (G.state.fileHandle ? G.state.fileHandle.name : nomFichier('json')) +
+      ' » — ' + io.resume(), 'ok', 5200);
   }
+
+  /* Ce que le fichier contient, en clair : la réponse à « est-ce que tout est
+     dedans ? » se dit, elle ne se devine pas. */
+  io.resume = function () {
+    var t = G.state.tasks.length, aff = 0, jal = 0;
+    G.state.tasks.forEach(function (x) {
+      aff += (x.subs || []).length;
+      if (x.milestone) jal++;
+    });
+    var f = G.state.fiches.length;
+    return t + ' tâche' + (t > 1 ? 's' : '') +
+      (jal ? ' dont ' + jal + ' jalon' + (jal > 1 ? 's' : '') : '') +
+      ', ' + aff + ' affiliée' + (aff > 1 ? 's' : '') +
+      ', ' + f + ' fiche' + (f > 1 ? 's' : '');
+  };
 
   /* Ctrl+S : réécrit le fichier ouvert. S'il n'y en a pas (dépôt d'un fichier,
      repli sur le champ caché), on demande où UNE fois, puis on y retourne. */
@@ -91,7 +107,7 @@
           if (err && err.name === 'AbortError') return;
           telecharger(texte);
           G.dirty = false;
-          V.toast('Téléchargé dans ~/Téléchargements', 'ok');
+          V.toast('Téléchargé dans ~/Téléchargements : ' + nomFichier('json') + ' — ' + io.resume(), 'ok', 5200);
         });
         return;
       }
@@ -100,7 +116,7 @@
     /* navigateur sans accès aux fichiers : téléchargement */
     telecharger(texte);
     G.dirty = false;
-    V.toast('Fichier .json téléchargé', 'ok');
+    V.toast('Téléchargé dans ~/Téléchargements : ' + nomFichier('json') + ' — ' + io.resume(), 'ok', 5200);
   }
 
   /* Enregistrer sous… : toujours redemander le fichier */
@@ -112,7 +128,10 @@
     io.nomCourant = null;
   };
 
-  io.exportJSON = function () { telecharger(donnees()); };
+  io.exportJSON = function () {
+    telecharger(donnees());
+    V.toast('Sauvegarde complète téléchargée : ' + nomFichier('json') + ' — ' + io.resume(), 'ok', 5200);
+  };
 
   /* ============================================== une fiche, en JSON portable ==
      Une fiche seule dans un fichier : elle part chez quelqu'un qui n'a pas

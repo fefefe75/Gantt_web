@@ -90,6 +90,7 @@
           break;
         }
         case 'save': io.save(); break;
+        case 'save-as': io.saveAs(); break;
         case 'open': io.openFile(); break;
         case 'toggle-panneau': V.togglePanneau(); break;
         case 'menu': basculerMenu(b); break;
