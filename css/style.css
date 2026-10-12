@@ -1111,3 +1111,313 @@ body.depot::after {
   .bar { box-shadow: none; }
   .bar:hover { filter: none; }
 }
+
+/* ==========================================================================
+   Vues « Tâches & affiliées » et « Fiches & PDF »
+   Même principe que le reste : interface neutre, la couleur vient des données.
+   ========================================================================== */
+
+[hidden] { display: none !important; }
+
+/* --------------------------------------------------------- barre des vues -- */
+.vues {
+  display: flex;
+  gap: 2px;
+  flex: none;
+  padding: 0 12px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+.vues button {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12.5px;
+  padding: 9px 13px 8px;
+  cursor: pointer;
+}
+.vues button:hover { color: var(--ink); }
+.vues button[aria-current="page"] {
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+body[data-vue="taches"] .gantt-only,
+body[data-vue="fiches"] .gantt-only { display: none !important; }
+
+/* ------------------------------------------------------------------ vues -- */
+.vue {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: var(--bg);
+}
+.vue-tete {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 15px 18px 12px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+.vue-tete h2 { margin: 0 0 4px; font-size: 15px; }
+.vue-aide {
+  margin: 0;
+  max-width: 78ch;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+.vue-outils { margin-left: auto; flex: none; display: flex; align-items: center; gap: 10px; }
+.vue-bilan { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.vide { padding: 18px; color: var(--muted); font-size: 13px; }
+
+.vue-fiches { display: flex; overflow: hidden; }
+
+/* ------------------------------------------------------------- les tâches -- */
+.taches { padding: 14px 18px 44px; max-width: 1080px; }
+.t-groupe { margin-bottom: 20px; }
+.t-groupe-tete { display: flex; align-items: center; gap: 8px; padding: 4px 2px 8px; }
+.t-groupe-tete h3 { margin: 0; font-size: 13px; }
+.t-groupe-n { margin-left: auto; font-size: 11.5px; color: var(--muted); }
+.t-puce { flex: none; width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+
+.tache {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+.t-tete { display: flex; align-items: center; gap: 10px; padding: 7px 10px; }
+.t-nom {
+  flex: 1 1 220px;
+  min-width: 110px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 3px 6px;
+}
+.t-nom:hover { border-color: var(--line); }
+.t-nom:focus { outline: none; border-color: var(--accent); background: var(--surface); }
+.t-meta { font-size: 11.5px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.t-bilan {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: var(--surface-3);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.t-bilan.tout { background: rgba(23, 134, 79, .14); color: var(--ok); }
+.t-bilan.vide { background: transparent; color: var(--faint); font-weight: 400; }
+
+.affiliees { list-style: none; margin: 0; padding: 2px 10px 8px 28px; }
+.aff { display: flex; align-items: center; gap: 7px; }
+.aff-case { display: flex; flex: none; }
+.aff-case input { width: 14px; height: 14px; accent-color: var(--accent); margin: 0; cursor: pointer; }
+.aff-nom {
+  flex: 1;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 3px 6px;
+}
+.aff-nom:hover { border-color: var(--line); }
+.aff-nom:focus { outline: none; border-color: var(--accent); background: var(--surface); }
+.aff.faite .aff-nom { color: var(--muted); text-decoration: line-through; }
+.aff-ajout { padding: 3px 0 0 21px; }
+
+.mini {
+  appearance: none;
+  font: inherit;
+  font-size: 11.5px;
+  line-height: 1.2;
+  padding: 3px 8px;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.mini:hover { color: var(--ink); background: var(--surface-3); }
+.aff .mini { border-color: transparent; font-size: 14px; padding: 1px 7px; }
+.aff .mini:hover { color: var(--danger); background: var(--danger-soft); }
+
+/* ------------------------------------------------------------- les fiches -- */
+.fiches-liste {
+  flex: none;
+  width: 268px;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+}
+.fl-tete { padding: 12px; border-bottom: 1px solid var(--line-2); }
+.fl-tete h2 { margin: 0 0 8px; font-size: 13px; }
+.fl-boutons { display: flex; gap: 6px; }
+.fl-items { flex: 1; list-style: none; margin: 0; padding: 8px; overflow: auto; }
+.fi {
+  padding: 8px 9px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.fi:hover { background: var(--surface-3); }
+.fi.active { background: var(--accent-soft); border-color: var(--accent); }
+.fi-type {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  padding: 1px 6px;
+  border-radius: 20px;
+  background: var(--surface-3);
+  color: var(--ink-2);
+}
+.fi-type.rex { background: rgba(238, 176, 74, .22); color: #87590f; }
+html[data-theme="sombre"] .fi-type.rex { color: #eeb04a; }
+.fi-titre { display: block; margin: 5px 0 2px; font-size: 12.5px; font-weight: 600; }
+.fi-sous { display: block; font-size: 11px; color: var(--muted); }
+.fl-aide {
+  margin: 0;
+  padding: 10px 12px;
+  border-top: 1px solid var(--line-2);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.fiches-editeur { flex: 1; min-width: 0; overflow: auto; padding: 14px 18px 44px; }
+.fe-outils { display: flex; align-items: center; gap: 8px; width: 210mm; max-width: 100%; margin: 0 auto 12px; }
+.fe-outils .espace { flex: 1; }
+
+/* --- la feuille A4 : elle est blanche même en thème sombre, c'est du papier -- */
+.feuille {
+  width: 210mm;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 12mm;
+  background: #fff;
+  color: #14161a;
+  border: 1px solid #e3e6eb;
+  border-radius: 3px;
+  box-shadow: var(--sh-2);
+  font-size: 10.5pt;
+  line-height: 1.4;
+}
+.fe-tete {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #14161a;
+}
+.fe-tete h1 { margin: 0; font-size: 17pt; }
+.fe-tete p { margin: 2px 0 0; font-size: 9pt; font-style: italic; color: #6b7280; }
+.fe-num { flex: none; font-size: 9.5pt; font-weight: 600; white-space: nowrap; }
+
+.fe-champs { width: 100%; margin: 10px 0 14px; border-collapse: collapse; font-size: 9.5pt; }
+.fe-champs th { width: 42mm; padding: 3px 6px 3px 0; text-align: left; vertical-align: bottom; font-weight: 600; }
+.fe-champs td { border-bottom: 1px solid #d6dae0; }
+
+.fe-h2 {
+  margin: 14px 0 4px;
+  padding-bottom: 2px;
+  font-size: 10.5pt;
+  border-bottom: 1px solid #cbd2da;
+}
+.fe-aide { margin: 0 0 6px; font-size: 8pt; font-style: italic; color: #7b8290; line-height: 1.35; }
+.fe-tab { width: 100%; border-collapse: collapse; font-size: 9pt; }
+.fe-tab th, .fe-tab td { border: 1px solid #cbd2da; padding: 2px 3px; text-align: left; vertical-align: top; }
+.fe-tab th { background: #f2f4f7; font-size: 8pt; font-weight: 600; color: #444b55; }
+.fe-tab .c { text-align: center; }
+.col-n { width: 7mm; }
+.col-jalon { width: 16mm; }
+.col-etat { width: 26mm; }
+.col-vu { width: 9mm; }
+.col-avis { width: 62mm; }
+.col-ech { width: 22mm; }
+.col-fait { width: 12mm; }
+.col-effet { width: 20mm; }
+.col-valide { width: 12mm; }
+
+.feuille input.l, .feuille textarea.l {
+  display: block;
+  width: 100%;
+  padding: 2px 1px;
+  border: 0;
+  border-bottom: 1px dotted #ccd2da;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+}
+.feuille input.l:focus, .feuille textarea.l:focus {
+  outline: none;
+  border-bottom-color: var(--accent);
+  background: #f5f9ff;
+}
+.feuille input.petit { font-size: 8.5pt; color: #4b5563; }
+.feuille input.date { font-size: 9pt; }
+
+.case { display: inline-flex; align-items: center; gap: 4px; margin-right: 8px; font-size: 8.5pt; color: #374151; }
+.case input { flex: none; width: 11px; height: 11px; margin: 0; accent-color: #2f6fed; }
+.etat .case, .avis .case { display: flex; margin: 1px 0; }
+.avis .case { margin-bottom: 2px; }
+
+.fe-avis { border: 1px solid #cbd2da; padding: 6px 8px; }
+.avis-ligne { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; margin-bottom: 6px; }
+.fe-avis textarea.l { border: 1px solid #d6dae0; border-radius: 3px; padding: 4px; font-size: 9pt; resize: vertical; }
+.fe-sign { display: flex; gap: 26px; margin-top: 8px; font-size: 9pt; }
+.fe-sign label { display: flex; align-items: baseline; gap: 6px; }
+.fe-sign input { width: 50mm; }
+.fe-sign label:last-child input { width: 32mm; }
+
+.fe-ajout { margin: 4px 0 0; }
+.fe-note { width: 210mm; max-width: 100%; margin: 10px auto 0; font-size: 10.5px; color: var(--muted); line-height: 1.5; }
+
+/* ------------------------------------------------------------- impression -- */
+/* `body[data-impression]` est posé par vues.js au moment d'imprimer : la même
+   page imprime soit le Gantt (A3 paysage), soit la liste des tâches, soit la
+   feuille de la fiche (A4 portrait). */
+@media print {
+  .vues, .fe-outils, .fe-note, .noprint, .vue-outils { display: none !important; }
+
+  body[data-impression="fiche"] .fiches-liste,
+  body[data-impression="fiche"] .vue-tete { display: none !important; }
+  body[data-impression="fiche"] .vue-fiches,
+  body[data-impression="fiche"] .fiches-editeur { display: block !important; overflow: visible !important; padding: 0 !important; }
+  body[data-impression="fiche"] .feuille {
+    width: auto;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  body[data-impression="taches"] .taches { padding: 0; max-width: none; }
+  body[data-impression="taches"] .tache { break-inside: avoid; }
+  body[data-impression="taches"] .vue-aide { display: none !important; }
+
+  .feuille input.l, .feuille textarea.l {
+    border-bottom-color: #99a1ad !important;
+    background: transparent !important;
+    color: #000 !important;
+  }
+  .fe-tab th, .fe-sign { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .case input, .aff-case input { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .fe-tab tr { break-inside: avoid; }
+}

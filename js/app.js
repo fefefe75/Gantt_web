@@ -24,6 +24,12 @@
     V.bind();
     V.bindGrip();
 
+    /* les vues ajoutées s'accrochent sur les mêmes données */
+    G.taches.cache();
+    G.taches.bind();
+    G.fichesVue.cache();
+    G.fichesVue.bind();
+
     /* ---- état initial : session précédente, sinon l'exemple maison ---- */
     var repris = G.persist.load();
     if (!repris) {
@@ -41,6 +47,9 @@
     var aujourdhui = U.todayISO();
     var cible = (aujourdhui >= r.startISO && aujourdhui <= r.endISO) ? aujourdhui : G.extent().min;
     V.ensureVisible(cible, true);
+
+    /* la vue où on s'était arrêté (le Gantt par défaut) */
+    G.vues.demarrer();
 
     G.dirty = false;
 
@@ -121,6 +130,9 @@
       fermerMenu();
 
       switch (b.dataset.act) {
+        case 'vue-gantt':  G.vues.aller('gantt'); break;
+        case 'vue-taches': G.vues.aller('taches'); break;
+        case 'vue-fiches': G.vues.aller('fiches'); break;
         case 'new': {
           if (G.state.tasks.length && !window.confirm('Créer un planning vide ? (Ctrl+Z ne revient pas en arrière après cette action)')) return;
           G.blankState();
@@ -152,7 +164,7 @@
         case 'x-json': io.exportJSON(); break;
         case 'x-svg':  io.exportSVG(); break;
         case 'x-png':  io.exportPNG(); break;
-        case 'print':  io.print(); break;
+        case 'print':  G.vues.imprimer(); break;
       }
     });
 

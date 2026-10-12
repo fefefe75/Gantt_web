@@ -1152,12 +1152,25 @@
     /* Ctrl+S / Ctrl+O : toujours actifs */
     if (ctrl && !e.altKey && (e.key === 's' || e.key === 'S')) {
       e.preventDefault();
-      if (e.shiftKey) G.io.saveAs(); else G.io.save();
+      e.shiftKey ? G.io.saveAs() : G.io.save();
       return;
     }
     if (ctrl && !e.altKey && (e.key === 'o' || e.key === 'O')) {
       e.preventDefault();
       G.io.openFile();
+      return;
+    }
+
+    /* Hors du Gantt, les raccourcis de tâches ne s'appliquent pas : sans cette
+       garde, « Suppr » effaçait la sélection restée en mémoire alors qu'on
+       travaillait dans une fiche. */
+    if (G.vues && !G.vues.surGantt()) {
+      if (ctrl && !e.altKey && (e.key === 'p' || e.key === 'P')) {
+        e.preventDefault();
+        G.vues.imprimer();
+        return;
+      }
+      if (e.key === 'Escape') { if (dansSaisie) e.target.blur(); return; }
       return;
     }
 

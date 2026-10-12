@@ -1,21 +1,42 @@
 # Gantt — planificateur local
 
-Un outil de diagramme de Gantt en HTML/CSS/JS pur, fait pour un usage personnel :
+Un outil de suivi de projet en HTML/CSS/JS pur, fait pour un usage personnel :
 pas de compte, pas de serveur, pas de collaborateur. On l'ouvre, on planifie, on
-exporte une image pour le rapport.
+remplit ses fiches de suivi, on sort un PDF pour le rendez-vous.
+
+Trois vues dans la même page :
+
+| Vue | Ce qu'on y fait |
+|---|---|
+| **Gantt** | planifier : tâches, groupes, jalons, dépendances, avancement |
+| **Tâches & affiliées** | ce qu'il reste à faire sur chaque tâche, qu'on coche au fil de l'eau |
+| **Fiches & PDF** | la fiche de suivi et le REX à remplir, puis à sortir en PDF |
 
 ```
 GANTT/
-├── index.html            la page
+├── index.html            la page et les trois vues
 ├── css/style.css         tout le style (thème clair + sombre, impression)
+├── vendor/
+│   ├── jspdf.umd.min.js  jsPDF 4.2.1 (MIT) — écrit le PDF des fiches
+│   └── README.md         provenance, condensat, licence
 └── js/
     ├── model.js          données, dates, historique (annuler/rétablir), sauvegarde locale
     ├── exemples.js       deux jeux d'exemple (maison 18 mois, conduite d'action M1→M13)
-    ├── view.js           rendu : en-tête, lignes, barres, jalons — deux calques SVG
+    ├── view.js           rendu du Gantt : en-tête, lignes, barres, jalons — deux calques SVG
     ├── interact.js       souris, clavier, presse-papiers, panneau de détails
     ├── export.js         enregistrer / ouvrir / exporter SVG, PNG / imprimer
+    ├── vue-taches.js     la vue des tâches affiliées
+    ├── vue-fiches.js     la vue des fiches (feuille A4 à remplir)
+    ├── pdf-fiche.js      la fiche en PDF, écrite en texte vectoriel par jsPDF
+    ├── vues.js           les onglets, la bascule de vue, le format d'impression
     └── app.js            démarrage, barre d'outils, menu
 ```
+
+## Le dossier, pas le fichier
+
+C'est **un dossier**, pas une page isolée : copier `index.html` seul donne une
+page blanche. Pour l'emporter ailleurs, copier le dossier entier (`css/`, `js/`,
+`vendor/` compris).
 
 ## Ouvrir / enregistrer
 
@@ -30,10 +51,11 @@ Si aucun fichier n'est encore associé (planning commencé à zéro, ou fichier
 ouvert par glisser-déposer), le premier `Ctrl+S` demande où enregistrer, puis y
 revient tout seul les fois suivantes.
 
-Chaque modification est en plus conservée dans le navigateur et retrouvée au
-rechargement — Ctrl+S n'est pas obligatoire pour ne rien perdre. Si le navigateur
-n'offre pas le sélecteur de fichier (Firefox, Safari), le `.json` est téléchargé
-à la place.
+Le planning **et** les fiches sont dans le même fichier `.json` : un seul
+document à sauvegarder, un seul à rouvrir. Chaque modification est en plus
+conservée dans le navigateur et retrouvée au rechargement — `Ctrl+S` n'est pas
+obligatoire pour ne rien perdre. Si le navigateur n'offre pas le sélecteur de
+fichier (Firefox, Safari), le `.json` est téléchargé à la place.
 
 Servir le dossier reste possible et ne change rien :
 
@@ -43,7 +65,7 @@ python3 -m http.server 8765
 # puis ouvrir http://localhost:8765/
 ```
 
-## Geste de base
+## Geste de base (vue Gantt)
 
 | Action | Comment |
 |---|---|
@@ -81,10 +103,63 @@ tâche et se branche sur son début.
 Deux flèches qui reculent par le même goutte se superposent : c'est rare et sans
 conséquence, mais ça explique une ligne qui semble porter deux liens.
 
+## Vue « Tâches & affiliées »
+
+Une tâche du Gantt a des dates ; le travail qu'il y a **dedans** n'en a pas.
+C'est une **tâche affiliée** : une ligne à cocher, rattachée à une tâche du
+planning, qui n'apparaît pas dans le Gantt. Un jalon peut en avoir, une tâche
+ordinaire aussi — c'est justement là que se cachent les choses qu'on oublie.
+
+| Action | Comment |
+|---|---|
+| Ouvrir la vue | onglet **Tâches & affiliées**, menu `⋯` → *Tâches & affiliées*, ou `Ctrl+2` |
+| Ajouter une affiliée | « + tâche affiliée » sous la tâche ; le curseur se place dans la ligne |
+| Cocher | la case devant la ligne — la ligne se barre, le compteur se met à jour |
+| Retirer | la croix à droite de la ligne |
+| Replier une tâche | la flèche ▾ en bout de ligne |
+| Renommer la tâche du planning | taper dans son nom, en haut de la carte (`Entrée` valide) |
+| Reporter sur le Gantt | « **↺ avancement** » écrit dans la tâche l'avancement déduit des affiliées cochées (2 lignes cochées sur 5 → 40 %) |
+| Imprimer | « Imprimer la liste » : sort la liste complète, cases comprises, sans les boutons |
+
+Le compteur de la vue (`3 / 12 tâches affiliées faites`) et le badge de la tâche
+(`2/5`, vert quand tout est fait) donnent l'état en un coup d'œil.
+
+## Vue « Fiches & PDF »
+
+Deux types de fiche :
+
+- la **fiche de suivi** : une par rendez-vous. Ce que j'ai fait (avec la preuve),
+  ce que je propose, ce que le tuteur en pense, ce qu'il demande.
+- le **REX** : un fait observé, son effet, sa cause, ce qu'on en change.
+
+Deux colonnes ne veulent jamais dire la même chose :
+
+- **« je garde cette idée »** est **ma** case — c'est mon tri à moi ;
+- **« d'accord / d'accord avec réserves / pas d'accord »** est la case du
+  **tuteur**, avec sa remarque juste à côté.
+
+| Action | Comment |
+|---|---|
+| Créer | « + Suivi » ou « + REX » en haut de la liste de gauche |
+| Remplir | tout se tape sur la feuille ; chaque champ est enregistré au fil de la frappe |
+| Passer d'une fiche à l'autre | clic dans la liste de gauche |
+| Ajouter une ligne | « + proposition », « + ligne », « + demande » sous chaque tableau |
+| Retirer une ligne | la croix à droite de la ligne |
+| Dupliquer | « Dupliquer » : reprend l'en-tête du projet et vide les lignes — c'est la fiche du rendez-vous suivant |
+| **PDF** | « **Télécharger le PDF** » écrit un vrai fichier `.pdf` (texte vectoriel, sélectionnable). « **Imprimer** » passe par le navigateur : même document, à choisir « Enregistrer au format PDF » |
+
+Le PDF contient les lignes remplies **et** des lignes vides (au moins quatre par
+tableau) : la feuille imprimée reste remplissable au stylo pendant le
+rendez-vous, et les cases vides sont là pour être cochées à la main.
+
+L'aperçu à l'écran et l'impression sont le même document : ce qui est imprimé est
+exactement ce qui est affiché.
+
 ## Clavier
 
 | Raccourci | Effet |
 |---|---|
+| `Ctrl+1` / `Ctrl+2` / `Ctrl+3` | vue Gantt / Tâches / Fiches |
 | `Ctrl+S` | enregistrer (fichier `.json`) |
 | `Ctrl+Maj+S` | enregistrer sous… |
 | `Ctrl+O` | ouvrir un `.json` |
@@ -92,17 +167,20 @@ conséquence, mais ça explique une ligne qui semble porter deux liens.
 | `Ctrl+X` | couper |
 | `Ctrl+D` | dupliquer à +7 jours |
 | `Ctrl+A` | tout sélectionner |
-| `Ctrl+Z` / `Ctrl+Y` | annuler / rétablir |
-| `Ctrl+P` | imprimer (mise en page paysage, ajustée à la page) |
+| `Ctrl+Z` / `Ctrl+Y` | annuler / rétablir (le Gantt, les affiliées et les fiches) |
+| `Ctrl+P` | imprimer la vue affichée (choisir « Enregistrer au format PDF ») |
 | `Ctrl` + molette | zoomer sur l'échelle de temps |
 | `Alt` + glisser | dupliquer une tâche et la déplacer |
 | `←` `→` | décaler d'un jour (`Ctrl` = une semaine) |
 | `Maj+←` `Maj+→` | étirer la fin |
 | `↑` `↓` | ligne précédente / suivante |
-| `Suppr` | supprimer la sélection |
+| `Suppr` | supprimer la sélection (vue Gantt uniquement) |
 | `F2` | renommer la tâche sélectionnée sur place (Entrée valide, Échap annule) |
 | `Alt+N` | nouvelle tâche |
-| `Échap` | désélectionner |
+| `Échap` | désélectionner, ou quitter le champ en cours |
+
+Les raccourcis de tâches ne s'appliquent que dans la vue Gantt : dans une fiche,
+`Suppr` efface du texte, il ne supprime pas une tâche restée sélectionnée.
 
 Le `Ctrl+V` accepte aussi du texte venu d'ailleurs : une ligne par tâche,
 `nom` puis éventuellement `début` et `fin` séparés par une tabulation ou un
@@ -116,7 +194,11 @@ Menu `⋯` :
 - **SVG** — vectoriel, propre à n'importe quelle échelle. Directement utilisable
   en LaTeX : `\includegraphics{fichier.pdf}` après un `rsvg-convert -f pdf`.
 - **PNG** — image ×2, pour un mail ou une diapositive.
-- **Imprimer / PDF** — `Ctrl+P`, l'échelle se réajuste automatiquement à la page.
+- **Imprimer la vue affichée** — `Ctrl+P`, l'échelle se réajuste à la page.
+
+Formats d'impression, posés automatiquement selon la vue : **A3 paysage** pour le
+Gantt (pour que la frise reste lisible), **A4 portrait** pour la liste des tâches
+et pour les fiches.
 
 ### Ce que font les exports sur un planning de plusieurs années
 
@@ -140,6 +222,8 @@ Un objet simple, modifiable à la main :
 
 ```json
 {
+  "app": "gantt-local",
+  "version": 2,
   "title": "Construction d'une maison — 18 mois",
   "zoom": "mois",
   "sections": [ { "id": "m1", "name": "Gros œuvre", "color": "ambre" } ],
@@ -147,7 +231,17 @@ Un objet simple, modifiable à la main :
     { "id": "g2", "name": "Fondations et semelles", "section": "m1",
       "start": "2026-07-27", "end": "2026-08-14", "progress": 100,
       "milestone": false, "color": null, "notes": "",
+      "subs": [ { "id": "a1", "name": "Décaisser et évacuer", "fait": true } ],
       "deps": [ { "id": "g1", "type": "FS" } ] }
+  ],
+  "fiches": [
+    { "id": "f1", "type": "suivi", "projet": "…", "numero": "1",
+      "periode": "du 6 au 12 octobre", "date": "2026-10-12", "auteur": "",
+      "fait":     [ { "id": "l1", "texte": "", "jalon": "", "preuve": "", "etat": "", "vu": false } ],
+      "idees":    [ { "id": "l2", "texte": "", "pourquoi": "", "retenu": false, "avis": "", "remarque": "" } ],
+      "demandes": [ { "id": "l3", "texte": "", "echeance": "", "fait": false } ],
+      "rex":      [],
+      "avis": { "accord": "", "remarque": "", "vu": false, "nom": "", "date": "" } }
   ]
 }
 ```
@@ -157,6 +251,12 @@ Un objet simple, modifiable à la main :
 - `color` : `null` = la couleur du groupe. Sinon `azur`, `vert`, `violet`,
   `ambre`, `turquoise`, `rose`, `ardoise`, `rouge`.
 - `deps` : liste des prédécesseurs (fin → début).
+- `subs` : les tâches affiliées (libellé + case cochée). Ni dates, ni Gantt.
+- `fiches` : les fiches du projet. `type` vaut `suivi` ou `rex`. Dans une ligne
+  « fait », `etat` prend `termine`, `encours` ou `reporte` ; dans une idée, `avis`
+  prend `ok`, `reserves` ou `non`.
+- Un fichier sans `subs` ni `fiches` se charge quand même : les deux manquants
+  démarrent vides.
 
 ## Exemples fournis
 
@@ -174,8 +274,22 @@ Menu `⋯` → *Exemples* :
 ## Ce que l'outil ne fait pas
 
 - Pas de collaborateurs, pas de comptes, pas de serveur : les données ne
-  quittent pas la machine.
+  quittent pas la machine. Un tuteur qui doit cocher reçoit donc le PDF imprimé
+  ou la fiche sous les yeux, pas un lien à ouvrir.
 - Le déplacement d'une tâche ne décale pas automatiquement ses suivantes
   (pas de recalcul de chaîne). Les flèches signalent le lien, à vous de
   déplacer.
-- Un seul niveau de regroupement (groupes → tâches).
+- Un seul niveau de regroupement (groupes → tâches), et un seul niveau
+  d'affiliation (tâche → tâches affiliées).
+- Ce qui est coché à la main sur un PDF ne remonte pas dans l'outil : le PDF est
+  une sortie, pas une entrée.
+- `showSaveFilePicker` n'existe ni dans Firefox ni dans Safari : le « Ctrl+S qui
+  réécrit le fichier ouvert » y retombe en téléchargement d'une copie. Tout le
+  reste — glisser, raccourcis, exports, PDF, JSON — est identique.
+
+## Bibliothèques embarquées
+
+`vendor/jspdf.umd.min.js` — **jsPDF 4.2.1**, licence MIT, 420 165 octets,
+empreinte et provenance détaillées dans `vendor/README.md`. Il sert uniquement
+au bouton « Télécharger le PDF ». Si le dossier `vendor/` disparaît, l'outil
+fonctionne toujours : ce bouton annonce alors qu'il faut passer par « Imprimer ».

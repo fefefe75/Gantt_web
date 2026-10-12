@@ -204,6 +204,7 @@
       rangeTight: false,       // cadrage serré, le temps d'un export
       sections: [],
       tasks: [],
+      fiches: [],              // fiches de suivi / REX (vue « Fiches »)
       selection: [],
       clipboard: null,
       fileHandle: null
@@ -234,6 +235,28 @@
     };
   };
 
+  /* Tâche affiliée : sous-tâche d'une tâche du planning. Elle n'a pas de dates
+     et n'apparaît pas dans le Gantt : c'est la liste de ce qu'il reste à faire
+     sur une tâche, qu'on coche au fil de l'eau. */
+  G.newSub = function (o) {
+    o = o || {};
+    return {
+      id: o.id || util.uid('a'),
+      name: o.name || '',
+      fait: !!o.fait,
+      note: o.note || ''
+    };
+  };
+
+  /* Tolérant : accepte des chaînes, des objets partiels, ignore le reste */
+  G.normSubs = function (liste) {
+    if (!Array.isArray(liste)) return [];
+    return liste.map(function (s) {
+      if (typeof s === 'string') return G.newSub({ name: s });
+      return G.newSub({ id: s.id, name: s.name || s.title || '', fait: !!(s.fait || s.done) });
+    });
+  };
+
   G.newTask = function (o) {
     o = o || {};
     var start = o.start || util.todayISO();
@@ -249,8 +272,137 @@
       tag: o.tag || '',
       color: o.color || null,          // null = couleur du groupe
       notes: o.notes || '',
+      subs: G.normSubs(o.subs),
       deps: o.deps ? o.deps.slice() : []
     };
+  };
+
+  /* ------------------------------------------------- tâches affiliées -- */
+  G.subById = function (t, id) {
+    for (var i = 0; i < t.subs.length; i++) if (t.subs[i].id === id) return t.subs[i];
+    return null;
+  };
+
+  G.addSub = function (t, name) {
+    var s = G.newSub({ name: name || '' });
+    t.subs.push(s);
+    return s;
+  };
+
+  G.removeSub = function (t, id) {
+    t.subs = t.subs.filter(function (s) { return s.id !== id; });
+  };
+
+  G.subBilan = function (t) {
+    var faites = 0;
+    t.subs.forEach(function (s) { if (s.fait) faites++; });
+    return { faites: faites, total: t.subs.length };
+  };
+
+  /* L'avancement d'une tâche déduit de ses tâches affiliées (0 si aucune) */
+  G.progressDepuisSubs = function (t) {
+    if (!t.subs.length) return 0;
+    return Math.round(G.subBilan(t).faites * 100 / t.subs.length);
+  };
+
+  /* Toutes les tâches ayant des affiliées, dans l'ordre du planning */
+  G.tachesAvecSubs = function () {
+    return state.tasks.filter(function (t) { return t.subs.length > 0; });
+  };
+
+  /* ------------------------------------------------------------- fiches -- */
+  /* Une fiche est un document à remplir puis à imprimer en PDF. Elle est
+     stockée dans le même fichier que le planning (.json), dans `fiches`. */
+  G.TYPES_FICHE = {
+    suivi: {
+      nom: 'Fiche de suivi',
+      aide: 'Ce que j\'ai fait, ce que je propose, ce que le tuteur en pense.'
+    },
+    rex: {
+      nom: 'REX',
+      aide: 'Retour d\'expérience : un fait observé, sa cause, ce qu\'on en fait.'
+    }
+  };
+
+  G.newFiche = function (type, o) {
+    o = o || {};
+    var t = G.TYPES_FICHE[type] ? type : 'suivi';
+    var f = {
+      id: util.uid('f'),
+      type: t,
+      projet: o.projet || '',
+      numero: o.numero || '',
+      periode: o.periode || '',
+      date: o.date || util.todayISO(),
+      auteur: o.auteur || '',
+      fait: [], idees: [], demandes: [], rex: [],
+      avis: { accord: '', remarque: '', vu: false, nom: '', date: '' }
+    };
+    if (t === 'suivi') {
+      f.fait = [G.newLigneFait()];
+      f.idees = [G.newLigneIdee()];
+      f.demandes = [G.newLigneDemande()];
+    } else {
+      f.rex = [G.newLigneRex()];
+    }
+    return f;
+  };
+
+  /* Ligne « ce que j'ai fait » : état à cocher, et une preuve à joindre */
+  G.newLigneFait = function () {
+    return { id: util.uid('l'), texte: '', jalon: '', preuve: '', etat: '', vu: false };
+  };
+
+  /* Ligne « ce que je propose » : la case du tuteur est distincte de la mienne */
+  G.newLigneIdee = function () {
+    return { id: util.uid('l'), texte: '', pourquoi: '', retenu: false, avis: '', remarque: '' };
+  };
+
+  /* Ligne « ce que le tuteur demande » : elle n'est pas de moi, je ne peux que la cocher */
+  G.newLigneDemande = function () {
+    return { id: util.uid('l'), texte: '', echeance: '', fait: false };
+  };
+
+  G.newLigneRex = function () {
+    return { id: util.uid('l'), fait: '', effet: '', cause: '', change: '', valide: false, remarque: '' };
+  };
+
+  G.ficheById = function (id) {
+    for (var i = 0; i < state.fiches.length; i++) if (state.fiches[i].id === id) return state.fiches[i];
+    return null;
+  };
+
+  /* Complète une fiche chargée d'un fichier : champs manquants, listes vides */
+  G.normFiche = function (f) {
+    var t = G.TYPES_FICHE[f.type] ? f.type : 'suivi';
+    var out = G.newFiche(t);
+    out.id = f.id || out.id;
+    out.projet = f.projet || f.title || '';
+    out.numero = f.numero == null ? '' : String(f.numero);
+    out.periode = f.periode || '';
+    out.date = util.parseLoose(f.date) || util.todayISO();
+    out.auteur = f.auteur || '';
+    var l = {
+      fait: G.newLigneFait, idees: G.newLigneIdee,
+      demandes: G.newLigneDemande, rex: G.newLigneRex
+    };
+    Object.keys(l).forEach(function (k) {
+      if (!Array.isArray(f[k])) { out[k] = t === 'rex' && k === 'rex' ? [G.newLigneRex()] : []; return; }
+      var modele = l[k]();
+      out[k] = f[k].map(function (x) {
+        var row = l[k]();
+        Object.keys(modele).forEach(function (champ) {
+          if (x && x[champ] !== undefined) row[champ] = x[champ];
+        });
+        return row;
+      });
+    });
+    if (f.avis && typeof f.avis === 'object') {
+      Object.keys(out.avis).forEach(function (k) {
+        if (f.avis[k] !== undefined) out.avis[k] = f.avis[k];
+      });
+    }
+    return out;
   };
 
   /* ------------------------------------------------------------- lecture -- */
@@ -480,7 +632,8 @@
     return JSON.stringify({
       title: state.title, zoom: state.zoom, pxOverride: state.pxOverride,
       leftWidth: state.leftWidth, rowHeight: state.rowHeight,
-      sections: state.sections, tasks: state.tasks, selection: state.selection
+      sections: state.sections, tasks: state.tasks, fiches: state.fiches,
+      selection: state.selection
     });
   }
 
@@ -530,6 +683,7 @@
     state.rowHeight = o.rowHeight;
     state.sections = o.sections;
     state.tasks = o.tasks;
+    state.fiches = o.fiches || [];
     state.selection = o.selection || [];
   }
 
@@ -599,11 +753,17 @@
         tag: t.tag || '',
         color: t.color || null,
         progress: t.progress || 0,
-        notes: t.notes || t.description || ''
+        notes: t.notes || t.description || '',
+        subs: t.subs || t.affiliees || t.sousTaches || []
       });
       tache.id = t.id || tache.id;
       return tache;
     });
+
+    /* fiches de suivi / REX : elles voyagent dans le même fichier que le planning */
+    d.fiches = Array.isArray(data.fiches)
+      ? data.fiches.map(function (f) { return G.normFiche(f); })
+      : [];
 
     /* dépendances : par id de tâche */
     (data.tasks || []).forEach(function (t, i) {
@@ -633,6 +793,7 @@
     state.pxOverride = null;
     state.sections = d.sections;
     state.tasks = d.tasks;
+    state.fiches = d.fiches;
     state.selection = [];
 
     G.history.reset();
@@ -648,7 +809,7 @@
   G.serialize = function () {
     return {
       app: 'gantt-local',
-      version: 1,
+      version: 2,
       title: state.title,
       zoom: state.zoom,
       theme: state.theme,
@@ -663,8 +824,14 @@
           start: t.start, end: t.end,
           progress: t.progress, milestone: t.milestone, tag: t.tag,
           color: t.color, notes: t.notes,
+          subs: t.subs.map(function (a) {
+            return { id: a.id, name: a.name, fait: a.fait };
+          }),
           deps: t.deps.map(function (d) { return { id: d.id, type: d.type || 'FS' }; })
         };
+      }),
+      fiches: state.fiches.map(function (f) {
+        return JSON.parse(JSON.stringify(f));
       })
     };
   };
