@@ -27,7 +27,9 @@
   function compter() {
     global = { faites: 0, total: 0 };
     G.state.tasks.forEach(function (t) {
-      t.subs.forEach(function (s) {
+      /* `|| []` : un objet incomplet ne doit pas vider toute la vue (voir la
+         normalisation à l'entrée, dans le modèle) */
+      (t.subs || []).forEach(function (s) {
         global.total++;
         if (s.fait) global.faites++;
       });
@@ -84,7 +86,7 @@
         '</div>' +
         (ouvert
           ? '<ul class="affiliees">' +
-              t.subs.map(function (s) { return ligneAffiliee(t, s); }).join('') +
+              (t.subs || []).map(function (s) { return ligneAffiliee(t, s); }).join('') +
               '<li class="aff-ajout noprint"><button class="mini" data-t="add-sub" data-tache="' + t.id + '">' +
               '+ tâche affiliée</button></li>' +
             '</ul>'
@@ -97,7 +99,7 @@
     if (!taches.length) return '';
     var col = G.colorOf(s.color);
     var n = 0;
-    taches.forEach(function (t) { n += t.subs.length; });
+    taches.forEach(function (t) { n += (t.subs || []).length; });
     return '' +
       '<section class="t-groupe">' +
         '<header class="t-groupe-tete">' +
@@ -191,7 +193,8 @@
         }
         case 'avancement': {
           if (!t) break;
-          if (!t.subs.length) { V.toast('Aucune tâche affiliée à reprendre', 'warn'); break; }
+          var sub = t.subs || [];
+          if (!sub.length) { V.toast('Aucune tâche affiliée à reprendre', 'warn'); break; }
           t.progress = G.progressDepuisSubs(t);
           G.history.commit();
           G.dirty = true;

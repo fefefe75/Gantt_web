@@ -278,36 +278,52 @@
   };
 
   /* ------------------------------------------------- tâches affiliées -- */
+  /* Un état relu (fichier, historique, sauvegarde locale d'une version
+     antérieure) peut ne pas porter tous les champs. On complète à l'entrée
+     plutôt que de planter plus loin : mesuré — une tâche sans `subs` faisait
+     tomber toute la vue des tâches, et « Imprimer la liste » avec elle. */
+  G.normTache = function (t) {
+    if (!t || typeof t !== 'object') return null;
+    t.subs = G.normSubs(t.subs);
+    if (!Array.isArray(t.deps)) t.deps = [];
+    t.progress = t.progress == null ? 0 : util.clamp(+t.progress, 0, 100);
+    if (t.notes == null) t.notes = '';
+    return t;
+  };
+
   G.subById = function (t, id) {
-    for (var i = 0; i < t.subs.length; i++) if (t.subs[i].id === id) return t.subs[i];
+    var l = t.subs || [];
+    for (var i = 0; i < l.length; i++) if (l[i].id === id) return l[i];
     return null;
   };
 
   G.addSub = function (t, name) {
+    if (!t.subs) t.subs = [];
     var s = G.newSub({ name: name || '' });
     t.subs.push(s);
     return s;
   };
 
   G.removeSub = function (t, id) {
-    t.subs = t.subs.filter(function (s) { return s.id !== id; });
+    t.subs = (t.subs || []).filter(function (s) { return s.id !== id; });
   };
 
   G.subBilan = function (t) {
-    var faites = 0;
-    t.subs.forEach(function (s) { if (s.fait) faites++; });
-    return { faites: faites, total: t.subs.length };
+    var faites = 0, l = t.subs || [];
+    l.forEach(function (s) { if (s.fait) faites++; });
+    return { faites: faites, total: l.length };
   };
 
   /* L'avancement d'une tâche déduit de ses tâches affiliées (0 si aucune) */
   G.progressDepuisSubs = function (t) {
-    if (!t.subs.length) return 0;
-    return Math.round(G.subBilan(t).faites * 100 / t.subs.length);
+    var b = G.subBilan(t);
+    if (!b.total) return 0;
+    return Math.round(b.faites * 100 / b.total);
   };
 
   /* Toutes les tâches ayant des affiliées, dans l'ordre du planning */
   G.tachesAvecSubs = function () {
-    return state.tasks.filter(function (t) { return t.subs.length > 0; });
+    return state.tasks.filter(function (t) { return (t.subs || []).length > 0; });
   };
 
   /* ------------------------------------------------------------- fiches -- */
@@ -433,6 +449,16 @@
       Object.keys(out.avis).forEach(function (k) {
         if (f.avis[k] !== undefined) out.avis[k] = f.avis[k];
       });
+    }
+    /* une fiche sans aucune ligne reste utilisable : on remet la ligne vide
+       attendue par son type (fiche reprise d'un fichier incomplet, ou écrite
+       à la main dans le JSON) */
+    if (t === 'rex') {
+      if (!out.rex.length) out.rex = [G.newLigneRex()];
+    } else {
+      if (!out.fait.length) out.fait = [G.newLigneFait()];
+      if (!out.idees.length) out.idees = [G.newLigneIdee()];
+      if (!out.demandes.length) out.demandes = [G.newLigneDemande()];
     }
     return out;
   };
@@ -714,8 +740,10 @@
     state.leftWidth = o.leftWidth;
     state.rowHeight = o.rowHeight;
     state.sections = o.sections;
-    state.tasks = o.tasks;
-    state.fiches = o.fiches || [];
+    /* chaque tâche est complétée : un état enregistré par une version
+       antérieure n'a ni `subs` ni forcément `deps` */
+    state.tasks = (o.tasks || []).map(G.normTache).filter(Boolean);
+    state.fiches = (o.fiches || []).map(G.normFiche);
     state.selection = o.selection || [];
   }
 
