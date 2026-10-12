@@ -46,11 +46,17 @@ Pour rouvrir un planning : le bouton **Ouvrir** de la barre d'outils, `Ctrl+O`,
 ou en **glissant** le fichier `.json` n'importe où dans la fenêtre.
 
 `Ctrl+S` réécrit **le fichier ouvert** : plus de question à chaque fois. Pour
-choisir un autre fichier : le bouton **Enregistrer sous** de la barre d'outils,
-`Ctrl+Maj+S`, ou le menu `⋯` → *Enregistrer sous…*. Si aucun fichier n'est encore
-associé (planning commencé à zéro, ou fichier ouvert par glisser-déposer), le
-premier `Ctrl+S` demande où enregistrer, puis y revient tout seul les fois
-suivantes.
+choisir un autre fichier : le menu `⋯` → *Enregistrer sous…*, ou `Ctrl+Maj+S`.
+Si aucun fichier n'est encore associé (planning commencé à zéro, fichier ouvert
+par glisser-déposer, ou page rechargée depuis), le `Ctrl+S` demande où
+enregistrer, puis y revient tout seul **pour le reste de la session**.
+
+Le fichier n'est retenu que le temps de la session : à chaque **rechargement**
+de la page, le navigateur ne le redonne pas à l'outil (le descripteur de fichier
+ne survit pas à un rechargement), donc le premier `Ctrl+S` redemande le chemin.
+C'est la raison pour laquelle il n'y a **pas** de bouton « Enregistrer sous » à
+côté d'Enregistrer : le geste ferait doublon avec ce que `Ctrl+S` demande déjà.
+La fonction reste dans le menu, pour enregistrer une copie sous un autre nom.
 
 Le fichier `.json` contient **tout** : le titre, les groupes, les tâches avec
 leurs dates et leurs liens, les jalons, les tâches affiliées (nom et case
