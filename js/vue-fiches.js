@@ -83,6 +83,48 @@
 
   var AVIS = [['ok', "d'accord"], ['reserves', 'd\'accord avec réserves'], ['non', 'pas d\'accord']];
 
+  /* ------------------------------------------------------------ les jalons -- */
+  /* La liste vient du Gantt, jamais d'une liste écrite à la main ailleurs :
+     renommer ou déplacer un jalon dans le planning suffit à mettre la fiche
+     à jour. S'il n'y a aucun jalon, on laisse un champ libre plutôt qu'un
+     menu vide. */
+  function selectJalon(chemin, tag, vide) {
+    var jalons = G.jalons();
+    if (!jalons.length) return champ(chemin, tag, { petit: true, placeholder: 'M1' });
+    var opt = '<option value="">' + U.esc(vide || '— jalon —') + '</option>';
+    jalons.forEach(function (j) {
+      opt += '<option value="' + U.esc(j.tag) + '"' + (j.tag === tag ? ' selected' : '') + '>' +
+        U.esc(j.tag + ' · ' + j.name + ' — ' + U.fmtShort(j.start)) + '</option>';
+    });
+    if (tag && !G.jalonParTag(tag)) {
+      opt += '<option value="' + U.esc(tag) + '" selected>' + U.esc(tag) + '</option>';
+    }
+    return '<select class="l jalon" data-ch="' + chemin + '" title="Jalon visé, tel qu\'il est dans le Gantt">' +
+      opt + '</select>';
+  }
+
+  /* Dit où en est le lien, relu dans le Gantt à chaque affichage */
+  function lienJalon(l) {
+    var out = '';
+    if (l.jalon) {
+      out += '<span class="lien">' + U.esc(G.libelleJalon(l.jalon)) + '</span>';
+    }
+    if (l.tache) {
+      var t = G.taskById(l.tache);
+      out += t
+        ? '<span class="lien ok">dans le Gantt : ' + U.esc(t.name) + ' — ' +
+          U.fmtShort(t.start) + ' → ' + U.fmtShort(t.end) + ' (' + t.progress + ' %)</span>'
+        : '<span class="lien warn">tâche supprimée du Gantt</span>';
+    }
+    return out;
+  }
+
+  function boutonGantt(l, sec, i) {
+    if (l.tache) return '';
+    return '<button class="mini noprint" data-f="vers-gantt" data-sec="' + sec + '" data-i="' + i + '"' +
+      ' title="Créer la tâche dans le Gantt, sous le jalon choisi">↦ Gantt</button>';
+  }
+
   function blocAvis(f, nom) {
     return '<div class="fe-avis">' +
       '<div class="avis-ligne">' +
@@ -134,7 +176,7 @@
     f.fait.forEach(function (l, i) {
       s += '<tr>' +
         '<td>' + champ('fait.' + i + '.texte', l.texte, { placeholder: 'tâche' }) + '</td>' +
-        '<td>' + champ('fait.' + i + '.jalon', l.jalon, { petit: true, placeholder: 'M1' }) + '</td>' +
+        '<td>' + selectJalon('fait.' + i + '.jalon', l.jalon, '—') + '</td>' +
         '<td class="etat">' +
           [['termine', 'terminé'], ['encours', 'en cours'], ['reporte', 'reporté']].map(function (e) {
             return radioA('etat-' + l.id, 'fait.' + i + '.etat', e[0], l.etat, e[1]);
@@ -164,7 +206,9 @@
         '<td>' + champ('idees.' + i + '.texte', l.texte, { placeholder: 'ce que je propose' }) +
           champ('idees.' + i + '.pourquoi', l.pourquoi, { petit: true,
             placeholder: 'pourquoi — options écartées, coût, risque' }) +
-          caseA('idees.' + i + '.retenu', l.retenu, 'je garde cette idée') + '</td>' +
+          caseA('idees.' + i + '.retenu', l.retenu, 'je garde cette idée') +
+          '<div class="lien-ligne">' + selectJalon('idees.' + i + '.jalon', l.jalon) +
+            boutonGantt(l, 'idees', i) + lienJalon(l) + '</div></td>' +
         '<td class="avis">' +
           AVIS.map(function (a) {
             return radioA('avis-idee-' + l.id, 'idees.' + i + '.avis', a[0], l.avis, a[1]);
@@ -188,7 +232,9 @@
     f.demandes.forEach(function (l, i) {
       s += '<tr>' +
         '<td class="c">' + (i + 1) + '</td>' +
-        '<td>' + champ('demandes.' + i + '.texte', l.texte, {}) + '</td>' +
+        '<td>' + champ('demandes.' + i + '.texte', l.texte, {}) +
+          '<div class="lien-ligne">' + selectJalon('demandes.' + i + '.jalon', l.jalon, '— jalon —') +
+            boutonGantt(l, 'demandes', i) + lienJalon(l) + '</div></td>' +
         '<td>' + champ('demandes.' + i + '.echeance', l.echeance, { petit: true, placeholder: 'date' }) + '</td>' +
         '<td class="c">' + caseA('demandes.' + i + '.fait', l.fait, '') + '</td>' +
         '<td class="noprint c"><button class="mini" data-f="suppr-ligne" data-sec="demandes" data-i="' + i + '"' +
@@ -243,9 +289,14 @@
     }
     el.editeur.innerHTML =
       '<div class="fe-outils noprint">' +
-        '<button class="btn btn-primary" data-f="pdf" title="Écrire un vrai fichier .pdf">' +
-          'Télécharger le PDF</button>' +
-        '<button class="btn" data-f="imprimer" title="Impression du navigateur (Ctrl+P)">Imprimer</button>' +
+        '<button class="btn btn-primary" data-f="pdf" title="PDF à champs : dans son lecteur, le tuteur coche et écrit dedans">' +
+          'PDF à remplir</button>' +
+        '<button class="btn" data-f="json" title="La fiche seule, en JSON : elle se relit et se corrige dans un éditeur de texte">' +
+          'Exporter en JSON</button>' +
+        '<button class="btn" data-f="importer" title="Reprendre une fiche JSON qui revient, corrigée">' +
+          'Importer un JSON</button>' +
+        '<button class="btn" data-f="imprimer" title="La même feuille, sans champs (impression du navigateur)">' +
+          'Imprimer (figée)</button>' +
         '<div class="espace"></div>' +
         '<button class="btn" data-f="dupliquer" title="Copier cette fiche pour la période suivante">' +
           'Dupliquer</button>' +
@@ -255,9 +306,17 @@
         entete(f) +
         (f.type === 'rex' ? feuilleRex(f) : feuilleSuivi(f)) +
       '</article>' +
-      '<p class="fe-note noprint">Le PDF téléchargé contient le texte, pas une image : il reste ' +
-      'lisible et sélectionnable. Pour un envoi, le PDF suffit ; pour cocher à la souris, ' +
-      'gardez la fiche ici — les cases sont modifiables à l\'écran.</p>';
+      '<p class="fe-note noprint">' +
+        '<b>PDF à remplir</b> : la fiche part en formulaire — le tuteur coche les états, ' +
+        'tape dans les cases, écrit ce qu\'il veut, et enregistre. Il lui faut seulement un ' +
+        'lecteur PDF (Acrobat, Firefox, Okular) : ni cet outil, ni réseau. Ce que j\'ai saisi ' +
+        'ici est déjà dans les champs, donc il peut le corriger.<br>' +
+        '<b>Imprimer (figée)</b> : la même feuille sans champs, à imprimer ou à poser dans ' +
+        'Confluence — l\'aperçu de Confluence ne sait pas remplir un PDF, il l\'affiche ' +
+        '(Atlassian documente même un défaut d\'affichage sur les champs pré-remplis).<br>' +
+        '<b>JSON</b> : la fiche seule, en clair. Elle se modifie dans n\'importe quel éditeur ' +
+        'de texte, et « Importer un JSON » la reprend au retour.' +
+      '</p>';
   }
 
   F.rendre = function () {
@@ -405,6 +464,41 @@
         case 'pdf':
           if (f) G.pdfFiche.telecharger(f);
           break;
+
+        case 'json':
+          if (f) G.io.exportFicheJSON(f);
+          break;
+
+        case 'importer':
+          G.io.importerFiches();
+          break;
+
+        /* la proposition passe dans le Gantt : la tâche est créée sous le jalon
+           choisi, et la fiche garde le lien vers elle */
+        case 'vers-gantt': {
+          if (!f) break;
+          var sec = b.dataset.sec, i = +b.dataset.i;
+          var l = f[sec] && f[sec][i];
+          if (!l) break;
+          if (!l.texte) { V.toast('Écrivez d\'abord la proposition', 'warn'); break; }
+          var j = G.jalonParTag(l.jalon);
+          var t = G.addTask({
+            name: l.texte,
+            section: j ? j.section : null,
+            start: j ? j.start : U.todayISO(),
+            duration: 5
+          });
+          /* la nouvelle tâche suit le jalon : le lien du Gantt le dit */
+          if (j) G.addDep(j.id, t.id, 'FS');
+          l.tache = t.id;
+          G.history.commit();
+          G.dirty = true;
+          G.persist.save();
+          F.rendre();
+          V.toast('Tâche créée dans le Gantt' + (j ? ' sous ' + j.tag : '') + ' : ' + t.name +
+            ' — elle apparaîtra à la vue Gantt', 'ok', 4600);
+          break;
+        }
       }
       G.persist.saveSoon();
     });

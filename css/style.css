@@ -1388,6 +1388,25 @@ html[data-theme="sombre"] .fi-type.rex { color: #eeb04a; }
 .fe-ajout { margin: 4px 0 0; }
 .fe-note { width: 210mm; max-width: 100%; margin: 10px auto 0; font-size: 10.5px; color: var(--muted); line-height: 1.5; }
 
+/* --- choix du jalon, et état du lien avec le Gantt --- */
+.feuille select.l {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  padding: 1px 0;
+  border: 0;
+  border-bottom: 1px dotted #ccd2da;
+  background: transparent;
+  font: inherit;
+  font-size: 8.5pt;
+  color: #4b5563;
+}
+.feuille select.l:focus { outline: none; border-bottom-color: var(--accent); }
+.lien-ligne { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 8px; margin-top: 3px; }
+.lien { font-size: 7.5pt; color: #6b7280; }
+.lien.ok { color: #17864f; }
+.lien.warn { color: #c0392b; }
+
 /* ------------------------------------------------------------- impression -- */
 /* `body[data-impression]` est posé par vues.js au moment d'imprimer : la même
    page imprime soit le Gantt (A3 paysage), soit la liste des tâches, soit la

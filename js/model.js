@@ -353,14 +353,17 @@
     return { id: util.uid('l'), texte: '', jalon: '', preuve: '', etat: '', vu: false };
   };
 
-  /* Ligne « ce que je propose » : la case du tuteur est distincte de la mienne */
+  /* Ligne « ce que je propose » : la case du tuteur est distincte de la mienne.
+     `jalon` porte l'étiquette du jalon visé (M2), `tache` l'identifiant de la
+     tâche créée dans le Gantt quand la proposition y passe. */
   G.newLigneIdee = function () {
-    return { id: util.uid('l'), texte: '', pourquoi: '', retenu: false, avis: '', remarque: '' };
+    return { id: util.uid('l'), texte: '', pourquoi: '', jalon: '', tache: '',
+             retenu: false, avis: '', remarque: '' };
   };
 
   /* Ligne « ce que le tuteur demande » : elle n'est pas de moi, je ne peux que la cocher */
   G.newLigneDemande = function () {
-    return { id: util.uid('l'), texte: '', echeance: '', fait: false };
+    return { id: util.uid('l'), texte: '', echeance: '', jalon: '', tache: '', fait: false };
   };
 
   G.newLigneRex = function () {
@@ -370,6 +373,35 @@
   G.ficheById = function (id) {
     for (var i = 0; i < state.fiches.length; i++) if (state.fiches[i].id === id) return state.fiches[i];
     return null;
+  };
+
+  /* ------------------------------------------------------ jalons du projet -- */
+  /* Les jalons du Gantt, dans l'ordre du planning. C'est eux que les fiches
+     visent : une proposition se rattache à « M2 », et la fiche affiche toujours
+     le nom et la date du jalon tels qu'ils sont *maintenant* dans le Gantt —
+     renommer ou déplacer le jalon met la fiche à jour toute seule. */
+  G.jalons = function () {
+    var out = [];
+    state.tasks.forEach(function (t) {
+      if (t.milestone) out.push(t);
+    });
+    return out;
+  };
+
+  G.jalonParTag = function (tag) {
+    if (!tag) return null;
+    var l = G.jalons();
+    for (var i = 0; i < l.length; i++) if (l[i].tag === tag) return l[i];
+    return null;
+  };
+
+  /* « M2 · Permis accordé — 22/05 » ; l'étiquette seule si le jalon n'existe
+     plus (jalon supprimé du Gantt, ou fichier venu d'ailleurs). */
+  G.libelleJalon = function (tag) {
+    if (!tag) return '';
+    var j = G.jalonParTag(tag);
+    if (!j) return tag + ' (jalon absent du Gantt)';
+    return j.tag + ' · ' + j.name + ' — ' + util.fmtShort(j.start);
   };
 
   /* Complète une fiche chargée d'un fichier : champs manquants, listes vides */

@@ -10,24 +10,24 @@ Trois vues dans la même page :
 |---|---|
 | **Gantt** | planifier : tâches, groupes, jalons, dépendances, avancement |
 | **Tâches & affiliées** | ce qu'il reste à faire sur chaque tâche, qu'on coche au fil de l'eau |
-| **Fiches & PDF** | la fiche de suivi et le REX à remplir, puis à sortir en PDF |
+| **Fiches & PDF** | la fiche de suivi et le REX à remplir, à sortir en PDF (à champs ou figée) ou en JSON |
 
 ```
 GANTT/
 ├── index.html            la page et les trois vues
 ├── css/style.css         tout le style (thème clair + sombre, impression)
 ├── vendor/
-│   ├── jspdf.umd.min.js  jsPDF 4.2.1 (MIT) — écrit le PDF des fiches
+│   ├── pdf-lib.min.js    pdf-lib 1.17.1 (MIT) — écrit le PDF remplissable
 │   └── README.md         provenance, condensat, licence
 └── js/
     ├── model.js          données, dates, historique (annuler/rétablir), sauvegarde locale
     ├── exemples.js       deux jeux d'exemple (maison 18 mois, conduite d'action M1→M13)
     ├── view.js           rendu du Gantt : en-tête, lignes, barres, jalons — deux calques SVG
     ├── interact.js       souris, clavier, presse-papiers, panneau de détails
-    ├── export.js         enregistrer / ouvrir / exporter SVG, PNG / imprimer
+    ├── export.js         enregistrer / ouvrir / exporter SVG, PNG / JSON d'une fiche
     ├── vue-taches.js     la vue des tâches affiliées
     ├── vue-fiches.js     la vue des fiches (feuille A4 à remplir)
-    ├── pdf-fiche.js      la fiche en PDF, écrite en texte vectoriel par jsPDF
+    ├── pdf-fiche.js      la fiche en PDF remplissable (champs AcroForm, pdf-lib)
     ├── vues.js           les onglets, la bascule de vue, le format d'impression
     └── app.js            démarrage, barre d'outils, menu
 ```
@@ -146,14 +146,68 @@ Deux colonnes ne veulent jamais dire la même chose :
 | Ajouter une ligne | « + proposition », « + ligne », « + demande » sous chaque tableau |
 | Retirer une ligne | la croix à droite de la ligne |
 | Dupliquer | « Dupliquer » : reprend l'en-tête du projet et vide les lignes — c'est la fiche du rendez-vous suivant |
-| **PDF** | « **Télécharger le PDF** » écrit un vrai fichier `.pdf` (texte vectoriel, sélectionnable). « **Imprimer** » passe par le navigateur : même document, à choisir « Enregistrer au format PDF » |
+| **PDF à remplir** | écrit un `.pdf` **à champs** : le tuteur coche, tape, ajoute et enregistre dans son lecteur PDF |
+| **Imprimer (figée)** | la même feuille **sans champs**, à imprimer ou à poser dans Confluence |
+| **Exporter / Importer en JSON** | la fiche seule, en clair, modifiable dans un éditeur de texte |
 
-Le PDF contient les lignes remplies **et** des lignes vides (au moins quatre par
-tableau) : la feuille imprimée reste remplissable au stylo pendant le
-rendez-vous, et les cases vides sont là pour être cochées à la main.
+### Le PDF à remplir
 
-L'aperçu à l'écran et l'impression sont le même document : ce qui est imprimé est
+Le fichier produit n'est pas une image de la fiche : c'est un **formulaire**.
+Ce que j'ai saisi part *dans* les champs, donc le tuteur peut le corriger, cocher
+les états (« terminé / en cours / reporté »), changer son avis, écrire dans les
+lignes vides — chaque tableau en garde au moins trois — et taper ses remarques et
+ses demandes dans le grand cadre du bas. Il lui faut seulement un lecteur PDF
+(Acrobat, Firefox, Okular, Aperçu) : ni cet outil, ni réseau.
+
+Mesuré sur la fiche de suivi d'exemple : **48 champs** (31 de texte, 17 cases et
+choix exclusifs) sur 2 pages A4 ; le REX en compte 24 sur une page. Vérifié avec
+pypdf — un autre moteur que celui qui écrit le fichier : les champs se relisent,
+se modifient et se réenregistrent.
+
+**Confluence ne remplit pas un PDF.** Son aperçu affiche le document ; pour le
+modifier on passe par « Modifier » (qui ouvre l'Atlassian Companion, télécharge
+le fichier dans l'application locale, puis le renvoie comme nouvelle version) ou
+par un téléchargement classique. Atlassian documente en plus un défaut
+d'affichage sur les champs **déjà remplis** dans l'aperçu
+([CONFSERVER-99121](https://jira.atlassian.com/browse/CONFSERVER-99121)) — d'où
+le second bouton : « Imprimer (figée) » produit un PDF sans champs, qui s'affiche
+proprement dans Confluence, et c'est celui-là qu'on joint à une page quand le
+tuteur n'a rien à remplir. Les deux portent le même nom, à l'extension près.
+
+L'aperçu à l'écran et l'impression sont le même document : ce qui s'imprime est
 exactement ce qui est affiché.
+
+### Le JSON d'une fiche
+
+« Exporter en JSON » écrit la fiche seule, dans
+`suivi_projet_<projet>_fiche-<type>-<n°>_<date>.json`. C'est le même objet que
+dans le fichier du planning : rien ne se perd à l'aller-retour. On l'ouvre dans
+n'importe quel éditeur de texte, on corrige une valeur, on ajoute une ligne à la
+main, et « Importer un JSON » le reprend dans l'outil — une fiche déjà connue est
+remplacée, une fiche inconnue s'ajoute. Déposer le fichier dans la fenêtre
+fonctionne aussi.
+
+## Les jalons : la fiche et le Gantt au même endroit
+
+Chaque ligne d'une fiche (ce que j'ai fait, ce que je propose, ce que le tuteur
+demande) peut viser un **jalon du Gantt**. La liste des jalons n'est jamais
+recopiée ailleurs : elle est lue dans le planning, avec le nom et la date du
+moment.
+
+| Geste | Effet |
+|---|---|
+| Choisir un jalon sur une ligne | la ligne est rattachée à `M2`, par exemple |
+| Lire la fiche | elle affiche `M2 · Permis accordé — 22/05`, relu dans le Gantt à chaque affichage |
+| Renommer ou déplacer le jalon dans le Gantt | **la fiche suit toute seule** : même lien, nouveau libellé |
+| « **↦ Gantt** » sur une proposition | crée la tâche dans le Gantt sous le jalon choisi : même groupe, même date de départ, et un lien de dépendance vers le jalon |
+| Après le transfert | la fiche affiche `dans le Gantt : <nom de la tâche> — dates (avancement)` |
+
+Si le jalon disparaît du Gantt, la fiche écrit `M2 (jalon absent du Gantt)`
+plutôt que d'inventer une date. Si la tâche créée est supprimée du Gantt, elle
+écrit `tâche supprimée du Gantt` — le lien ne ment jamais.
+
+Dans la vue **Tâches & affiliées**, chaque tâche rappelle les jalons dont elle
+dépend (`après M1, M2`) : le lien se lit aussi côté planning.
 
 ## Clavier
 
@@ -238,8 +292,10 @@ Un objet simple, modifiable à la main :
     { "id": "f1", "type": "suivi", "projet": "…", "numero": "1",
       "periode": "du 6 au 12 octobre", "date": "2026-10-12", "auteur": "",
       "fait":     [ { "id": "l1", "texte": "", "jalon": "", "preuve": "", "etat": "", "vu": false } ],
-      "idees":    [ { "id": "l2", "texte": "", "pourquoi": "", "retenu": false, "avis": "", "remarque": "" } ],
-      "demandes": [ { "id": "l3", "texte": "", "echeance": "", "fait": false } ],
+      "idees":    [ { "id": "l2", "texte": "", "pourquoi": "", "jalon": "M2", "tache": "",
+                      "retenu": false, "avis": "", "remarque": "" } ],
+      "demandes": [ { "id": "l3", "texte": "", "echeance": "", "jalon": "", "tache": "",
+                      "fait": false } ],
       "rex":      [],
       "avis": { "accord": "", "remarque": "", "vu": false, "nom": "", "date": "" } }
   ]
@@ -255,6 +311,9 @@ Un objet simple, modifiable à la main :
 - `fiches` : les fiches du projet. `type` vaut `suivi` ou `rex`. Dans une ligne
   « fait », `etat` prend `termine`, `encours` ou `reporte` ; dans une idée, `avis`
   prend `ok`, `reserves` ou `non`.
+- `jalon` porte **l'étiquette** du jalon visé (`M2`), jamais son nom : renommer
+  le jalon dans le Gantt ne casse donc pas le lien. `tache` porte l'identifiant
+  de la tâche créée dans le Gantt quand la proposition y passe (`↦ Gantt`).
 - Un fichier sans `subs` ni `fiches` se charge quand même : les deux manquants
   démarrent vides.
 
@@ -282,14 +341,22 @@ Menu `⋯` → *Exemples* :
 - Un seul niveau de regroupement (groupes → tâches), et un seul niveau
   d'affiliation (tâche → tâches affiliées).
 - Ce qui est coché à la main sur un PDF ne remonte pas dans l'outil : le PDF est
-  une sortie, pas une entrée.
+  une sortie, pas une entrée. Le retour passe par le **JSON** (Importer un JSON)
+  ou par la ressaisie ici.
+- L'aperçu de Confluence ne sait pas remplir un PDF, et Atlassian documente un
+  affichage fautif des champs déjà remplis dans cet aperçu : joindre de
+  préférence la version **figée** pour la lecture, et envoyer la version
+  **à remplir** au tuteur.
 - `showSaveFilePicker` n'existe ni dans Firefox ni dans Safari : le « Ctrl+S qui
   réécrit le fichier ouvert » y retombe en téléchargement d'une copie. Tout le
   reste — glisser, raccourcis, exports, PDF, JSON — est identique.
 
 ## Bibliothèques embarquées
 
-`vendor/jspdf.umd.min.js` — **jsPDF 4.2.1**, licence MIT, 420 165 octets,
+`vendor/pdf-lib.min.js` — **pdf-lib 1.17.1**, licence MIT, 525 099 octets,
 empreinte et provenance détaillées dans `vendor/README.md`. Il sert uniquement
-au bouton « Télécharger le PDF ». Si le dossier `vendor/` disparaît, l'outil
+au bouton « PDF à remplir » : les champs d'un PDF (texte, cases, choix exclusifs)
+ne s'écrivent pas à la main sans lui. Si le dossier `vendor/` disparaît, l'outil
 fonctionne toujours : ce bouton annonce alors qu'il faut passer par « Imprimer ».
+
+Aucune autre dépendance : ni police, ni icône, ni image distante.

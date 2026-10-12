@@ -222,7 +222,13 @@
 
   function lireFichier(f) {
     var r = new FileReader();
-    r.onload = function () { io.importer(String(r.result), f.name); };
+    r.onload = function () {
+      var txt = String(r.result);
+      /* une fiche seule déposée dans la fenêtre s'ajoute au projet, elle
+         n'écrase pas le planning en cours */
+      if (io.estFicheJSON && io.estFicheJSON(txt)) io.integrerFiches(txt, f.name);
+      else io.importer(txt, f.name);
+    };
     r.onerror = function () { V.toast('Lecture impossible', 'warn'); };
     r.readAsText(f);
   }

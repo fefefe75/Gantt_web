@@ -57,6 +57,10 @@
       ? U.fmtShort(t.start)
       : U.fmtShort(t.start) + ' → ' + U.fmtShort(t.end);
     var ouvert = ouvertes[t.id] !== false;
+    /* les jalons dont cette tâche dépend : le lien avec les fiches se lit ici */
+    var apres = (t.deps || []).map(function (d) { return G.taskById(d.id); })
+      .filter(function (x) { return x && x.milestone; })
+      .map(function (x) { return x.tag || x.name; });
 
     return '' +
       '<article class="tache" data-tache="' + t.id + '">' +
@@ -66,6 +70,7 @@
             ' spellcheck="false" title="Renommer la tâche (le planning suit)">' +
           '<span class="t-meta">' + date +
             (t.milestone ? ' · jalon ' + U.esc(t.tag || '') : '') +
+            (apres.length ? ' · après ' + U.esc(apres.join(', ')) : '') +
             ' · ' + t.progress + ' %</span>' +
           (b.total
             ? '<span class="t-bilan' + (b.faites === b.total ? ' tout' : '') + '">' +

@@ -1,38 +1,47 @@
 # Bibliothèques tierces embarquées
 
-## jsPDF 4.2.1 — `jspdf.umd.min.js`
+## pdf-lib 1.17.1 — `pdf-lib.min.js`
 
-- Rôle : écrire un vrai fichier `.pdf` (texte vectoriel, sélectionnable) depuis
-  la page, pour le bouton **Télécharger le PDF** des fiches.
-- Source : <https://unpkg.com/jspdf@4.2.1/dist/jspdf.umd.min.js>
-  (dépôt <https://github.com/parallax/jsPDF> — `parallax/jsPDF`, anciennement
-  `MrRio/jsPDF`).
-- Licence : MIT — le texte de licence est en tête du fichier, qui est recopié
-  tel quel, sans modification.
+- Rôle : écrire la fiche en **PDF remplissable** (formulaire AcroForm) — des
+  champs de texte, des cases à cocher et des choix exclusifs que le tuteur
+  remplit dans son lecteur PDF, sans l'outil et sans réseau.
+- Source : <https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js>
+  (dépôt <https://github.com/Hopding/pdf-lib>).
+- Licence : MIT — le texte est recopié tel quel, sans modification.
+- Taille : 525 099 octets.
+- Intégrité (sha256, recalculé sur cette machine après téléchargement) :
+
+```
+0f9a5cad07941f0826586c94e089d89b918c46e5c17cf2d5a3c6f666e3bc694f  pdf-lib.min.js
+```
+
 - Embarqué et non chargé depuis un CDN : l'outil doit fonctionner en `file://`
   sans réseau, comme le reste.
-- Taille : 420 165 octets.
-- Intégrité (sha256 du fichier livré, recalculé sur cette machine après
-  téléchargement) :
 
-```
-e6551fcdc32f09d6853b2c5126d18d01d9447e0da618a41a11ebeee0f6c20d54  jspdf.umd.min.js
-```
+### Pourquoi pdf-lib, et pas un autre
 
-### Ce que jsPDF ne sait pas faire, et qui a décidé du dessin
+| Bibliothèque | Verdict |
+|---|---|
+| **pdf-lib** | écrit de vrais champs AcroForm (texte, case, radio, liste) en plus du dessin. Retenue. |
+| jsPDF 4.2.1 | dessine très bien, mais **ne sait pas créer de champ** : un PDF jsPDF ne se remplit pas. Écartée (elle a servi à la première version, dans l'historique git). |
+| html2pdf.js / html2canvas | rasterise la page : le texte devient une image (flou, non sélectionnable, non modifiable) et ajoute une dépendance. Écartée. |
 
-- Les 14 polices standard d'un PDF sont limitées à l'encodage WinAnsi : les
-  accents français (é, è, à, ç, ô) passent, mais pas `☐`, `✓` ni `²`.
-  Les cases à cocher sont donc **dessinées** (`rect`, `line`) et non écrites.
-- `text()` ne coupe pas les lignes : le retour à la ligne passe par
-  `splitTextToSize` et la pagination est calculée à la main.
-- `html()` (rendu DOM → PDF) a été écarté : il dépend de `html2canvas`, il
-  rasterise le texte (flou à l'impression, texte non sélectionnable) et
-  ajouterait une seconde dépendance.
+### Ce que la norme impose, et qui a décidé du dessin
+
+- Les 14 polices standard d'un PDF n'ont ni `☐` ni `✓` : les cases à cocher et
+  les choix exclusifs sont donc des **champs**, jamais des caractères. Les
+  accents français, eux, passent sans problème.
+- Un lecteur PDF n'exécute pas de JavaScript ici (et Confluence le retire à
+  l'upload) : aucun champ ne dépend d'un script.
+- `form.enableMultiline()` remet la taille de police en automatique — sans
+  `setFontSize()` après `addToPage()`, le lecteur étire le texte jusqu'à
+  remplir le cadre (mesuré : des remarques écrites en 30 pt).
+- Dans pdf-lib, `y` est le **coin bas** d'un champ : passer la coordonnée haute
+  place la case une ligne au-dessus de son libellé.
 
 ### L'autre chemin de PDF, sans dépendance
 
-L'impression du navigateur (`Ctrl+P` → « Enregistrer au format PDF ») reste
-disponible et donne le même document par le moteur du navigateur. Elle ne
-dépend d'aucune bibliothèque : si ce dossier `vendor/` disparaît, tout le reste
-de l'outil continue de fonctionner.
+L'impression du navigateur (`Ctrl+P` → « Enregistrer au format PDF », bouton
+**Imprimer (figée)**) donne la même feuille **sans champs**. Aucune
+bibliothèque n'est nécessaire : si ce dossier `vendor/` disparaît, tout le
+reste de l'outil fonctionne et ce bouton annonce de passer par l'impression.

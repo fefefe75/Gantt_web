@@ -16,6 +16,9 @@
     var base = io.nomCourant
       ? String(io.nomCourant).replace(/\.[^.]+$/, '')
       : U.slug(G.state.title);
+    /* un fichier tout neuf porte le nom de l'outil et du projet, pour se
+       reconnaître dans un dossier ou dans un espace Confluence */
+    if (ext === 'json' && !io.nomCourant) base = 'suivi_projet_' + base;
     return base + '.' + ext;
   }
 
@@ -110,6 +113,103 @@
   };
 
   io.exportJSON = function () { telecharger(donnees()); };
+
+  /* ============================================== une fiche, en JSON portable ==
+     Une fiche seule dans un fichier : elle part chez quelqu'un qui n'a pas
+     l'outil, il l'ouvre dans un éditeur de texte, la modifie, la renvoie.
+     C'est le même objet que dans le fichier du planning — pas une copie
+     approximative, donc rien ne se perd à l'aller-retour. */
+  io.nomFiche = function (f) {
+    return 'suivi_projet_' + U.slug(f.projet || G.TYPES_FICHE[f.type].nom) +
+      '_fiche-' + f.type + (f.numero ? '-' + U.slug(f.numero) : '') +
+      '_' + f.date + '.json';
+  };
+
+  io.ficheEnJSON = function (f) {
+    return JSON.stringify({
+      app: 'gantt-local',
+      version: 2,
+      type: 'fiche',
+      exporte_le: U.todayISO(),
+      fiche: f
+    }, null, 2);
+  };
+
+  io.exportFicheJSON = function (f) {
+    if (!f) { V.toast('Aucune fiche affichée', 'warn'); return; }
+    var nom = io.nomFiche(f);
+    U.download(nom, io.ficheEnJSON(f), 'application/json');
+    V.toast('Fiche exportée : ' + nom, 'ok', 4200);
+  };
+
+  /* Extraction tolérante : une fiche seule, une liste de fiches, ou un
+     planning complet dont on ne garde que les fiches. */
+  function fichesDe(obj) {
+    if (!obj || typeof obj !== 'object') return [];
+    if (obj.type === 'fiche' && obj.fiche) return [obj.fiche];
+    if (Array.isArray(obj)) return obj;
+    if (Array.isArray(obj.fiches)) return obj.fiches;
+    if (obj.projet !== undefined || obj.idees !== undefined || obj.fait !== undefined) return [obj];
+    return [];
+  }
+
+  function integrer(texte, nom) {
+    var obj;
+    try { obj = JSON.parse(texte); }
+    catch (e) { V.toast('JSON invalide', 'warn'); return; }
+
+    var brutes = fichesDe(obj);
+    if (!brutes.length) { V.toast('Aucune fiche dans ce fichier', 'warn', 3600); return; }
+
+    var ajoutees = 0, maj = 0;
+    brutes.forEach(function (b) {
+      var f = G.normFiche(b);
+      var place = G.ficheById(f.id);
+      if (place) {
+        /* la fiche revient corrigée : elle remplace la mienne, à sa place */
+        var idx = G.state.fiches.indexOf(place);
+        G.state.fiches[idx] = f;
+        maj++;
+      } else {
+        G.state.fiches.push(f);
+        ajoutees++;
+      }
+    });
+
+    G.history.commit();
+    G.dirty = true;
+    G.persist.save();
+    if (G.vues) G.vues.aller('fiches'); else V.render();
+
+    var mots = [];
+    if (ajoutees) mots.push(ajoutees + ' fiche(s) ajoutée(s)');
+    if (maj) mots.push(maj + ' fiche(s) mise(s) à jour');
+    V.toast('Import' + (nom ? ' de « ' + nom + ' »' : '') + ' : ' + mots.join(', '), 'ok', 4400);
+  }
+
+  io.importerFiches = function () {
+    var inp = document.createElement('input');
+    inp.type = 'file';
+    inp.accept = '.json,application/json';
+    inp.addEventListener('change', function () {
+      var f = inp.files && inp.files[0];
+      if (!f) return;
+      var r = new FileReader();
+      r.onload = function () { integrer(String(r.result), f.name); };
+      r.onerror = function () { V.toast('Lecture impossible', 'warn'); };
+      r.readAsText(f);
+    });
+    inp.click();
+  };
+
+  /* même chemin quand un .json est déposé dans la fenêtre : si c'est une fiche,
+     elle s'ajoute au lieu d'écraser le planning */
+  io.estFicheJSON = function (texte) {
+    try { return fichesDe(JSON.parse(texte)).length > 0 && !JSON.parse(texte).tasks; }
+    catch (e) { return false; }
+  };
+
+  io.integrerFiches = integrer;
 
   /* ------------------------------------------------------------ ouvrir -- */
   io.openFile = function () {
